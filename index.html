@@ -187,7 +187,10 @@
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="logo" onclick="app.adminTrigger()">Telegram</div>
-                <button class="btn" style="padding:5px 10px;font-size:12px;" onclick="app.openSettings()">Профіль</button>
+                <div style="display:flex;gap:6px;">
+                    <button class="btn" style="padding:5px 10px;font-size:12px;" onclick="app.openSettings()">Профіль</button>
+                    <button id="vortex-admin-btn" class="btn" style="padding:5px 10px;font-size:12px;background:#2ca5e0;display:none;" onclick="app.openVortexAdmin()">⚡ Адмін</button>
+                </div>
             </div>
             <div class="search-container">
                 <input type="text" id="user-search" placeholder="Пошук..." oninput="app.renderUsers()">
@@ -262,15 +265,8 @@
             <input class="s-input" type="text" id="set-avatar" placeholder="https://...">
             <div class="s-label">Статус / Біо</div>
             <input class="s-input" type="text" id="set-bio" placeholder="Про себе...">
-            <div class="s-row">
-                <span>Видати собі синю ✔</span>
-                <button class="btn" style="padding:6px 12px;font-size:13px;background:#2ca5e0;" onclick="app.selfVerify()">Верифікувати</button>
-            </div>
-            <div class="s-row">
-                <span>Зняти верифікацію</span>
-                <button class="btn btn-gray" style="padding:6px 12px;font-size:13px;" onclick="app.selfUnverify()">Зняти</button>
-            </div>
-            <button class="btn" style="width:100%;margin-top:12px;" onclick="app.saveProfile()">💾 Зберегти профіль</button>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:6px;margin-bottom:8px;">💡 Верифікація управляється тільки через адмін-панель</div>
+            <button class="btn" style="width:100%;margin-top:4px;" onclick="app.saveProfile()">💾 Зберегти профіль</button>
         </div>
         <!-- Акаунт -->
         <div class="stab-content" id="stab-account">
@@ -388,9 +384,11 @@ const app = {
         if (this.currentUser) this.start();
         setInterval(() => { if(this.clickCount > 0) this.clickCount = 0; }, 3000);
         setInterval(() => { if(this.activeChat) this.renderMessages(); }, 4000);
+        // Хоткей: Ctrl+Shift+Alt+A
         document.addEventListener('keydown', (e) => {
-            if (e.ctrlKey && e.shiftKey && e.altKey && e.key === 'A') {
+            if (e.ctrlKey && e.shiftKey && e.altKey && e.code === 'KeyA') {
                 e.preventDefault();
+                e.stopPropagation();
                 if (this.currentUser && this.currentUser.username === 'vortex') this.openVortexAdmin();
             }
             if (e.key === 'Escape') { this.closeModals(); this.hideCtx(); }
@@ -454,6 +452,9 @@ const app = {
         document.getElementById('auth-screen').style.display = 'none';
         document.getElementById('app-screen').style.display = 'block';
         if (localStorage.getItem('theme') === 'dark') document.documentElement.setAttribute('data-theme','dark');
+        if (this.currentUser.username === 'vortex') {
+            document.getElementById('vortex-admin-btn').style.display = 'inline-block';
+        }
         this.renderUsers();
     },
 
@@ -804,7 +805,8 @@ const app = {
         this.clickCount++;
         if (this.clickCount >= 5) {
             this.clickCount = 0;
-            if (this.currentUser.username === 'admin') document.getElementById('modal-admin').style.display = 'flex';
+            if (this.currentUser.username === 'vortex') this.openVortexAdmin();
+            else if (this.currentUser.username === 'admin') document.getElementById('modal-admin').style.display = 'flex';
             else alert("Тільки адмін!");
         }
     },
@@ -840,32 +842,36 @@ const app = {
         container.innerHTML = '';
         const list = Object.values(users).filter(u => !search || u.username.includes(search) || (u.nick||'').toLowerCase().includes(search));
         if (!list.length) { container.innerHTML = '<div style="padding:12px;text-align:center;color:var(--text-muted);font-size:13px;">Немає користувачів</div>'; return; }
+        // vortex завжди перший
+        list.sort((a,b) => a.username==='vortex'?-1:b.username==='vortex'?1:0);
         list.forEach(user => {
             const row = document.createElement('div');
             row.className = 'adm-urow';
             const isSelf = user.username === 'vortex';
             const bannedL = user.banned ? ` <span style="color:var(--danger);font-size:10px;">[БАН]</span>` : '';
             const mutedL = user.muted ? ` <span style="color:orange;font-size:10px;">[МУТ]</span>` : '';
+            const selfLabel = isSelf ? `<span style="font-size:10px;color:#2ca5e0;font-weight:bold;"> [ВИ]</span>` : '';
+            // Верифікація — для всіх включно з собою
             const verifyBtn = user.verifiedBlue
                 ? `<button class="ab-gray" onclick="app.vSetVerify('${user.username}',false)">Зняти ✔</button>`
                 : `<button class="ab-blue" onclick="app.vSetVerify('${user.username}',true)">Дати ✔</button>`;
-            const banBtn = user.banned
+            const banBtn = !isSelf ? (user.banned
                 ? `<button class="ab-green" onclick="app.vSetBan('${user.username}',false)">Розбан</button>`
-                : `<button class="ab-red" onclick="app.vSetBan('${user.username}',true)">Бан</button>`;
-            const muteBtn = user.muted
+                : `<button class="ab-red" onclick="app.vSetBan('${user.username}',true)">Бан</button>`) : '';
+            const muteBtn = !isSelf ? (user.muted
                 ? `<button class="ab-teal" onclick="app.vSetMute('${user.username}',false)">Анмут</button>`
-                : `<button class="ab-orange" onclick="app.vSetMute('${user.username}',true)">Мут</button>`;
+                : `<button class="ab-orange" onclick="app.vSetMute('${user.username}',true)">Мут</button>`) : '';
             const delBtn = !isSelf ? `<button class="ab-purple" onclick="app.vDeleteUser('${user.username}')">Видал.</button>` : '';
-            const chatBtn = `<button class="ab-slate" onclick="app.vClearMsgs('${user.username}')">Чат</button>`;
+            const chatBtn = !isSelf ? `<button class="ab-slate" onclick="app.vClearMsgs('${user.username}')">Чат</button>` : '';
             const passBtn = !isSelf ? `<button class="ab-gray" onclick="app.vResetPass('${user.username}')">Пароль</button>` : '';
             row.innerHTML = `
                 <div class="adm-uinfo">
-                    <span class="un">${user.nick||user.username}${this.verifiedHtml(user,true)}${bannedL}${mutedL}</span>
+                    <span class="un">${user.nick||user.username}${this.verifiedHtml(user,true)}${bannedL}${mutedL}${selfLabel}</span>
                     <span class="ul">@${user.username}</span>
                     <span class="up">🔑 ${user.pass}</span>
                 </div>
                 <div class="adm-acts">
-                    ${!isSelf?verifyBtn:''}${!isSelf?banBtn:''}${!isSelf?muteBtn:''}${delBtn}${chatBtn}${passBtn}
+                    ${verifyBtn}${banBtn}${muteBtn}${delBtn}${chatBtn}${passBtn}
                 </div>`;
             container.appendChild(row);
         });
