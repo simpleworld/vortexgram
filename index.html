@@ -159,6 +159,10 @@
             .sidebar.hidden { transform: translateX(-100%); }
             .stats-grid { grid-template-columns: 1fr 1fr; }
         }
+        .av-preset { width: 100%; aspect-ratio: 1; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: 0.15s; display: flex; align-items: center; justify-content: center; font-size: 22px; background-size: cover; background-position: center; }
+        .av-preset:hover { border-color: var(--primary); transform: scale(1.08); }
+        .av-preset.selected { border-color: #2ca5e0; box-shadow: 0 0 0 2px #2ca5e0; }
+        .av-category { font-size: 11px; font-weight: 600; color: var(--text-muted); margin: 8px 0 4px; grid-column: 1/-1; text-transform: uppercase; letter-spacing: 0.5px; }
     </style>
 </head>
 <body>
@@ -256,17 +260,27 @@
         <!-- Профіль -->
         <div class="stab-content active" id="stab-profile">
             <div style="text-align:center;margin-bottom:12px;">
-                <div class="profile-big-av" id="settings-big-av"></div>
-                <div style="font-size:16px;font-weight:bold;display:flex;align-items:center;justify-content:center;gap:5px;" id="settings-name-line"></div>
+                <div class="profile-big-av" id="settings-big-av" style="cursor:pointer;" onclick="app.toggleAvatarPicker()" title="Натисни щоб вибрати аватарку"></div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">натисни на аватар щоб вибрати</div>
+                <div style="font-size:16px;font-weight:bold;display:flex;align-items:center;justify-content:center;gap:5px;margin-top:6px;" id="settings-name-line"></div>
+            </div>
+            <div id="avatar-picker" style="display:none;margin-bottom:12px;border:1px solid var(--border);border-radius:12px;padding:10px;background:var(--bg-sidebar);">
+                <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px;">Вибери аватарку</div>
+                <div id="avatar-grid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;max-height:230px;overflow-y:auto;"></div>
+                <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">
+                    <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">або встав URL свого фото:</div>
+                    <div style="display:flex;gap:6px;">
+                        <input class="s-input" type="text" id="set-avatar" placeholder="https://..." style="margin-bottom:0;flex:1;font-size:12px;padding:7px 10px;">
+                        <button class="btn" style="padding:7px 12px;font-size:12px;" onclick="app.applyCustomAvatar()">ОК</button>
+                    </div>
+                </div>
             </div>
             <div class="s-label">Нікнейм</div>
             <input class="s-input" type="text" id="set-nick" placeholder="Нікнейм">
-            <div class="s-label">URL Аватарки</div>
-            <input class="s-input" type="text" id="set-avatar" placeholder="https://...">
             <div class="s-label">Статус / Біо</div>
             <input class="s-input" type="text" id="set-bio" placeholder="Про себе...">
-            <div style="font-size:12px;color:var(--text-muted);margin-top:6px;margin-bottom:8px;">💡 Верифікація управляється тільки через адмін-панель</div>
-            <button class="btn" style="width:100%;margin-top:4px;" onclick="app.saveProfile()">💾 Зберегти профіль</button>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;margin-bottom:8px;">Верифікація — тільки через адмін-панель</div>
+            <button class="btn" style="width:100%;" onclick="app.saveProfile()">Зберегти профіль</button>
         </div>
         <!-- Акаунт -->
         <div class="stab-content" id="stab-account">
@@ -458,6 +472,47 @@ const app = {
         this.renderUsers();
     },
 
+    getAvatarStyle(avatar, nick) {
+        if (!avatar) return `background-color:${this.strColor(nick)};`;
+        if (avatar.startsWith('gradient::')) return `background:${avatar.replace('gradient::','')};`;
+        if (avatar.startsWith('emoji::')) return `background:var(--bg-sidebar);`;
+        return `background-image:url(${avatar});background-color:transparent;background-size:cover;background-position:center;`;
+    },
+
+    getAvatarInit(avatar, nick) {
+        if (!avatar) return (nick||'?')[0].toUpperCase();
+        if (avatar.startsWith('gradient::')) return (nick||'?')[0].toUpperCase();
+        if (avatar.startsWith('emoji::')) return avatar.replace('emoji::','');
+        return '';
+    },
+
+    applyAvatarToEl(el, avatar, nick) {
+        el.style.backgroundSize = 'cover';
+        el.style.backgroundPosition = 'center';
+        if (!avatar) {
+            el.style.backgroundImage = 'none';
+            el.style.background = this.strColor(nick);
+            el.innerText = (nick||'?')[0].toUpperCase();
+            el.style.fontSize = '';
+        } else if (avatar.startsWith('gradient::')) {
+            el.style.backgroundImage = 'none';
+            el.style.background = avatar.replace('gradient::', '');
+            el.innerText = (nick||'?')[0].toUpperCase();
+            el.style.fontSize = '18px';
+            el.style.color = 'white';
+        } else if (avatar.startsWith('emoji::')) {
+            el.style.backgroundImage = 'none';
+            el.style.background = 'var(--bg-sidebar)';
+            el.innerText = avatar.replace('emoji::', '');
+            el.style.fontSize = '28px';
+        } else {
+            el.style.backgroundImage = `url(${avatar})`;
+            el.style.backgroundColor = 'transparent';
+            el.innerText = '';
+            el.style.fontSize = '';
+        }
+    },
+
     strColor(s) {
         const c = ['#e53935','#8e24aa','#1e88e5','#00897b','#43a047','#fb8c00','#6d4c41','#546e7a'];
         let h = 0; for(let i=0;i<(s||'').length;i++) h = s.charCodeAt(i)+((h<<5)-h);
@@ -483,14 +538,15 @@ const app = {
             const div = document.createElement('div');
             div.className = `user-item ${this.activeChat === user.username ? 'active' : ''} ${user.banned ? 'banned-user' : ''}`;
             div.onclick = () => this.selectChat(user.username);
-            const avStyle = user.avatar ? `background-image:url(${user.avatar});background-color:transparent;` : `background-color:${this.strColor(user.nick)};`;
-            const init = user.avatar ? '' : (user.nick||'?')[0].toUpperCase();
+            const avStyle = this.getAvatarStyle(user.avatar, user.nick);
+            const init = this.getAvatarInit(user.avatar, user.nick);
             const bannedHtml = user.banned ? `<span class="banned-label"> [БАН]</span>` : '';
             const mutedHtml = user.muted ? `<span class="muted-label"> [МУТ]</span>` : '';
             const unread = messages.filter(m => m.from===user.username && m.to===this.currentUser.username && !m.read).length;
             const lastMsg = messages.filter(m => (m.from===user.username&&m.to===this.currentUser.username)||(m.from===this.currentUser.username&&m.to===user.username)).slice(-1)[0];
+            const avFontSize = (user.avatar||'').startsWith('emoji::') ? 'font-size:22px;' : '';
             div.innerHTML = `
-                <div class="avatar" style="${avStyle}">${init}</div>
+                <div class="avatar" style="${avStyle}${avFontSize}">${init}</div>
                 <div style="flex:1;min-width:0;">
                     <div style="display:flex;align-items:center;justify-content:space-between;">
                         <span style="font-weight:600;">${user.nick||user.username}${this.verifiedHtml(user)}${bannedHtml}${mutedHtml}</span>
@@ -515,10 +571,7 @@ const app = {
         document.getElementById('header-verified').innerHTML = this.verifiedHtml(t);
         document.getElementById('header-status').innerHTML = t.bio ? `<span style="color:var(--text-muted);font-size:12px;">${t.bio}</span>` : '<span style="color:var(--primary);">онлайн</span>';
         const hAv = document.getElementById('header-avatar');
-        hAv.style.backgroundImage = t.avatar ? `url(${t.avatar})` : 'none';
-        hAv.style.backgroundColor = t.avatar ? 'transparent' : this.strColor(t.nick);
-        hAv.innerText = t.avatar ? '' : (t.nick||'?')[0].toUpperCase();
-        hAv.style.backgroundSize = 'cover';
+        this.applyAvatarToEl(hAv, t.avatar, t.nick);
         const messages = this.D('messages');
         let changed = false;
         messages.forEach(m => { if(m.from===username && m.to===this.currentUser.username && !m.read) { m.read=true; changed=true; } });
@@ -656,16 +709,15 @@ const app = {
     // Settings
     openSettings() {
         const u = this.currentUser;
+        this._selectedAvatar = u.avatar || null;
         document.getElementById('set-nick').value = u.nick || '';
-        document.getElementById('set-avatar').value = u.avatar || '';
+        document.getElementById('set-avatar').value = '';
         document.getElementById('set-bio').value = u.bio || '';
         document.getElementById('acc-login').innerText = u.username;
         document.getElementById('acc-regdate').innerText = u.regDate || '—';
+        document.getElementById('avatar-picker').style.display = 'none';
         const av = document.getElementById('settings-big-av');
-        av.style.backgroundImage = u.avatar ? `url(${u.avatar})` : 'none';
-        av.style.backgroundColor = u.avatar ? 'transparent' : this.strColor(u.nick);
-        av.innerText = u.avatar ? '' : (u.nick||'?')[0].toUpperCase();
-        av.style.backgroundSize = 'cover';
+        this.applyAvatarToEl(av, u.avatar, u.nick);
         document.getElementById('settings-name-line').innerHTML = (u.nick||u.username) + this.verifiedHtml(u);
         if (localStorage.getItem('theme')==='dark') document.getElementById('set-theme').checked = true;
         const cfg = u.settings || {};
@@ -692,7 +744,7 @@ const app = {
         const users = this.D('users');
         const u = users[this.currentUser.username];
         u.nick = document.getElementById('set-nick').value.trim() || u.username;
-        u.avatar = document.getElementById('set-avatar').value.trim();
+        u.avatar = this._selectedAvatar || '';
         u.bio = document.getElementById('set-bio').value.trim();
         this.S('users', users);
         this.currentUser = u;
@@ -785,10 +837,9 @@ const app = {
         if (!u) return;
         const messages = this.D('messages');
         const chatMsgs = messages.filter(m=>!m.deleted&&((m.from===u.username&&m.to===this.currentUser.username)||(m.from===this.currentUser.username&&m.to===u.username)));
-        const avStyle = u.avatar?`background-image:url(${u.avatar});background-color:transparent;`:`background-color:${this.strColor(u.nick)};`;
         document.getElementById('user-profile-content').innerHTML = `
             <div style="text-align:center;margin-bottom:18px;">
-                <div style="width:80px;height:80px;border-radius:50%;${avStyle}display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:bold;color:white;background-size:cover;background-position:center;margin:0 auto 10px;">${u.avatar?'':(u.nick||'?')[0].toUpperCase()}</div>
+                <div id="profile-modal-av" style="width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:bold;color:white;margin:0 auto 10px;"></div>
                 <div style="font-size:19px;font-weight:bold;display:flex;align-items:center;justify-content:center;gap:5px;">${u.nick||u.username}${this.verifiedHtml(u)}</div>
                 <div style="color:var(--text-muted);font-size:13px;margin-top:2px;">@${u.username}</div>
                 ${u.bio?`<div style="margin-top:7px;font-size:13px;">${u.bio}</div>`:''}
@@ -798,6 +849,7 @@ const app = {
                 <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);"><span>Повідомлень разом</span><span style="color:var(--primary);font-weight:bold;">${chatMsgs.length}</span></div>
                 <div style="display:flex;justify-content:space-between;padding:5px 0;"><span>Статус</span><span style="color:${u.banned?'var(--danger)':u.muted?'orange':'#4caf50'}">${u.banned?'Заблоковано':u.muted?'Замучений':'Активний'}</span></div>
             </div>`;
+        this.applyAvatarToEl(document.getElementById('profile-modal-av'), u.avatar, u.nick);
         document.getElementById('modal-user-profile').style.display = 'flex';
     },
 
@@ -1020,6 +1072,128 @@ const app = {
         if (!confirm("Очистити логи?")) return;
         this.S('alogs', []);
         this.renderAdminLogs();
+    },
+
+
+    // ===== AVATAR PICKER =====
+    AVATARS: [
+        // Тварини
+        {cat:'Тварини', items:[
+            {emoji:'🐱'},{emoji:'🐶'},{emoji:'🦊'},{emoji:'🐺'},{emoji:'🦁'},{emoji:'🐯'},
+            {emoji:'🐸'},{emoji:'🐼'},{emoji:'🐨'},{emoji:'🐮'},{emoji:'🐷'},{emoji:'🐙'},
+            {emoji:'🦋'},{emoji:'🦄'},{emoji:'🐧'},{emoji:'🦅'},{emoji:'🐬'},{emoji:'🦈'},
+        ]},
+        // Люди та обличчя
+        {cat:'Персонажі', items:[
+            {emoji:'😎'},{emoji:'🤖'},{emoji:'👾'},{emoji:'👻'},{emoji:'🎭'},{emoji:'🥷'},
+            {emoji:'🧙'},{emoji:'🧛'},{emoji:'🧜'},{emoji:'🧚'},{emoji:'🤠'},{emoji:'🥸'},
+        ]},
+        // Природа та космос
+        {cat:'Природа', items:[
+            {emoji:'🌙'},{emoji:'⭐'},{emoji:'🌈'},{emoji:'⚡'},{emoji:'🔥'},{emoji:'❄️'},
+            {emoji:'🌊'},{emoji:'🌺'},{emoji:'🍀'},{emoji:'🌙'},{emoji:'☀️'},{emoji:'🌍'},
+        ]},
+        // Предмети та символи
+        {cat:'Символи', items:[
+            {emoji:'💎'},{emoji:'👑'},{emoji:'🎮'},{emoji:'🎯'},{emoji:'⚔️'},{emoji:'🛡️'},
+            {emoji:'🎵'},{emoji:'🎸'},{emoji:'🏆'},{emoji:'💻'},{emoji:'🚀'},{emoji:'🎲'},
+        ]},
+        // Градієнтні аватарки (SVG data uri)
+        {cat:'Стиль', items:[
+            {svg:'linear-gradient(135deg,#667eea,#764ba2)'},{svg:'linear-gradient(135deg,#f093fb,#f5576c)'},
+            {svg:'linear-gradient(135deg,#4facfe,#00f2fe)'},{svg:'linear-gradient(135deg,#43e97b,#38f9d7)'},
+            {svg:'linear-gradient(135deg,#fa709a,#fee140)'},{svg:'linear-gradient(135deg,#a18cd1,#fbc2eb)'},
+            {svg:'linear-gradient(135deg,#ffecd2,#fcb69f)'},{svg:'linear-gradient(135deg,#ff9a9e,#fad0c4)'},
+            {svg:'linear-gradient(135deg,#a1c4fd,#c2e9fb)'},{svg:'linear-gradient(135deg,#fd7043,#ff8a65)'},
+            {svg:'linear-gradient(135deg,#26c6da,#00838f)'},{svg:'linear-gradient(135deg,#7c3aed,#4f46e5)'},
+        ]},
+    ],
+
+    _selectedAvatar: null,
+
+    toggleAvatarPicker() {
+        const picker = document.getElementById('avatar-picker');
+        const isOpen = picker.style.display !== 'none';
+        if (!isOpen) {
+            this.buildAvatarGrid();
+            picker.style.display = 'block';
+        } else {
+            picker.style.display = 'none';
+        }
+    },
+
+    buildAvatarGrid() {
+        const grid = document.getElementById('avatar-grid');
+        grid.innerHTML = '';
+        const nick = document.getElementById('set-nick').value || this.currentUser.nick || '?';
+        this.AVATARS.forEach(group => {
+            const cat = document.createElement('div');
+            cat.className = 'av-category';
+            cat.innerText = group.cat;
+            grid.appendChild(cat);
+            group.items.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'av-preset';
+                if (item.svg) {
+                    div.style.background = item.svg;
+                    // Show initial letter on gradient
+                    div.style.color = 'white';
+                    div.style.fontWeight = 'bold';
+                    div.style.fontSize = '20px';
+                    div.innerText = nick[0].toUpperCase();
+                    div.dataset.val = 'gradient::' + item.svg;
+                } else {
+                    div.style.background = 'var(--bg-main)';
+                    div.style.fontSize = '26px';
+                    div.innerText = item.emoji;
+                    div.dataset.val = 'emoji::' + item.emoji;
+                }
+                // Mark currently selected
+                if (this.currentUser.avatar === div.dataset.val) div.classList.add('selected');
+                div.onclick = () => this.selectPresetAvatar(div);
+                grid.appendChild(div);
+            });
+        });
+    },
+
+    selectPresetAvatar(el) {
+        document.querySelectorAll('.av-preset').forEach(a => a.classList.remove('selected'));
+        el.classList.add('selected');
+        this._selectedAvatar = el.dataset.val;
+        // Live preview on big avatar
+        this.previewAvatar(this._selectedAvatar);
+    },
+
+    previewAvatar(val) {
+        const av = document.getElementById('settings-big-av');
+        const nick = document.getElementById('set-nick').value || this.currentUser.nick || '?';
+        if (!val) return;
+        if (val.startsWith('gradient::')) {
+            const grad = val.replace('gradient::', '');
+            av.style.background = grad;
+            av.style.backgroundImage = 'none';
+            av.innerText = nick[0].toUpperCase();
+            av.style.fontSize = '30px';
+            av.style.color = 'white';
+        } else if (val.startsWith('emoji::')) {
+            const emoji = val.replace('emoji::', '');
+            av.style.background = 'var(--bg-sidebar)';
+            av.style.backgroundImage = 'none';
+            av.innerText = emoji;
+            av.style.fontSize = '40px';
+        } else {
+            av.style.backgroundImage = 'url(' + val + ')';
+            av.style.backgroundSize = 'cover';
+            av.innerText = '';
+        }
+    },
+
+    applyCustomAvatar() {
+        const url = document.getElementById('set-avatar').value.trim();
+        if (!url) return;
+        this._selectedAvatar = url;
+        this.previewAvatar(url);
+        document.getElementById('avatar-picker').style.display = 'none';
     },
 
     closeModals() { document.querySelectorAll('.modal').forEach(m => m.style.display='none'); }
