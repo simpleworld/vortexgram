@@ -2,9 +2,10 @@
 <html lang="uk" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web Telegram</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Telegram Web Pro</title>
     <style>
+        /* --- CSS СТИЛІ --- */
         :root {
             --primary: #3390ec;
             --primary-hover: #2a7cbd;
@@ -31,208 +32,173 @@
             --msg-other: #212121;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        body { height: 100vh; display: flex; overflow: hidden; background: var(--bg-main); color: var(--text-main); transition: background 0.3s, color 0.3s; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
+        body { height: 100vh; display: flex; background: var(--bg-main); color: var(--text-main); overflow: hidden; }
 
-        /* Auth Screen */
-        #auth-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; background: var(--bg-sidebar); z-index: 1000; }
-        .auth-box { background: var(--bg-main); padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 350px; text-align: center; }
-        .auth-box h2 { margin-bottom: 20px; color: var(--primary); }
-        .auth-box input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-main); color: var(--text-main); outline: none; transition: border 0.2s; }
-        .auth-box input:focus { border-color: var(--primary); }
-        .btn { width: 100%; padding: 12px; background: var(--primary); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; transition: background 0.2s; }
-        .btn:hover { background: var(--primary-hover); }
-        .auth-toggle { margin-top: 15px; color: var(--primary); cursor: pointer; font-size: 14px; }
-
-        /* App Layout */
+        /* Екрани */
+        #auth-screen { position: fixed; inset: 0; display: flex; justify-content: center; align-items: center; background: var(--bg-sidebar); z-index: 2000; }
         #app-screen { display: none; width: 100%; height: 100%; }
+
+        /* Авторизація */
+        .auth-box { background: var(--bg-main); padding: 40px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+        .auth-box h2 { margin-bottom: 25px; color: var(--primary); }
+        .auth-box input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-main); color: var(--text-main); outline: none; }
+        .auth-box input:focus { border-color: var(--primary); }
         
-        /* Sidebar */
-        .sidebar { width: 350px; background: var(--bg-sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
-        .sidebar-header { padding: 15px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
-        .logo-area { font-weight: bold; font-size: 18px; color: var(--primary); cursor: pointer; user-select: none; }
-        .icon-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted); padding: 5px; transition: color 0.2s; }
-        .icon-btn:hover { color: var(--primary); }
-        .search-bar { padding: 10px 15px; border-bottom: 1px solid var(--border); }
-        .search-bar input { width: 100%; padding: 10px; border-radius: 20px; border: 1px solid var(--border); background: var(--bg-main); color: var(--text-main); outline: none; }
+        /* Кнопки */
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s; background: var(--primary); color: white; }
+        .btn:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        .btn:active { transform: translateY(0); }
+        .btn-danger { background: var(--danger); }
+
+        /* Основна сітка (Desktop) */
+        .main-container { display: flex; width: 100%; height: 100%; }
+
+        /* Сайдбар */
+        .sidebar { width: 350px; border-right: 1px solid var(--border); background: var(--bg-sidebar); display: flex; flex-direction: column; flex-shrink: 0; transition: transform 0.3s ease; }
+        .sidebar-header { padding: 15px; display: flex; justify-content: space-between; align-items: center; background: var(--bg-main); }
+        .logo { font-weight: bold; color: var(--primary); cursor: pointer; user-select: none; font-size: 1.2rem; }
+        .search-container { padding: 10px; background: var(--bg-main); }
+        .search-container input { width: 100%; padding: 10px; border-radius: 20px; border: 1px solid var(--border); background: var(--bg-sidebar); outline: none; }
+
+        /* Список користувачів */
         .user-list { flex: 1; overflow-y: auto; }
-        .user-item { display: flex; align-items: center; padding: 12px 15px; cursor: pointer; transition: background 0.2s; }
-        .user-item:hover { background: var(--bg-main); }
-        .user-item.active { background: var(--primary); color: #fff; }
-        .user-item.active .text-muted { color: #e0e0e0; }
-        
-        .avatar { width: 48px; height: 48px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; justify-content: center; align-items: center; font-size: 20px; font-weight: bold; margin-right: 15px; background-size: cover; background-position: center; flex-shrink: 0; }
-        
-        .user-info { flex: 1; overflow: hidden; }
-        .user-name { font-weight: 500; display: flex; align-items: center; gap: 5px; }
-        .verified-tick { color: var(--primary); font-size: 14px; }
-        .user-item.active .verified-tick { color: #fff; }
+        .user-item { display: flex; align-items: center; padding: 12px 15px; cursor: pointer; transition: 0.2s; border-bottom: 1px solid rgba(0,0,0,0.03); }
+        .user-item:hover { background: rgba(0,0,0,0.05); }
+        .user-item.active { background: var(--primary); color: white; }
+        .user-item.active .text-muted { color: rgba(255,255,255,0.8); }
 
-        /* Chat Area */
+        .avatar { width: 50px; height: 50px; border-radius: 50%; background: #ccc; margin-right: 15px; flex-shrink: 0; background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; }
+
+        /* Чат */
         .chat-area { flex: 1; display: flex; flex-direction: column; background: var(--bg-main); position: relative; }
-        .chat-header { padding: 15px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--bg-main); z-index: 10; }
-        .chat-header-info { display: flex; align-items: center; }
-        .status { font-size: 13px; color: var(--primary); margin-top: 2px; }
+        .chat-header { height: 60px; padding: 0 20px; display: flex; align-items: center; border-bottom: 1px solid var(--border); background: var(--bg-main); z-index: 10; }
+        .chat-header .back-btn { display: none; margin-right: 15px; font-size: 20px; cursor: pointer; }
         
-        .messages-container { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; background-image: url('data:image/svg+xml;utf8,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="none"/></svg>'); }
-        .message { max-width: 70%; padding: 10px 15px; border-radius: 15px; position: relative; word-wrap: break-word; animation: popIn 0.3s ease-out; }
-        @keyframes popIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        .msg-own { align-self: flex-end; background: var(--msg-own); border-bottom-right-radius: 4px; color: var(--text-main); box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
-        .msg-other { align-self: flex-start; background: var(--msg-other); border-bottom-left-radius: 4px; border: 1px solid var(--border); color: var(--text-main); box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-        .msg-time { font-size: 11px; color: var(--text-muted); text-align: right; margin-top: 5px; display: block; }
+        .messages-container { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; background: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-attachment: fixed; }
+        .msg { max-width: 70%; padding: 10px 15px; border-radius: 12px; font-size: 15px; position: relative; animation: fadeIn 0.2s ease; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .msg.own { align-self: flex-end; background: var(--msg-own); border-bottom-right-radius: 2px; }
+        .msg.other { align-self: flex-start; background: var(--msg-other); border-bottom-left-radius: 2px; }
+        .msg-time { font-size: 11px; opacity: 0.6; margin-top: 5px; text-align: right; display: block; }
 
-        .chat-input-area { padding: 15px 20px; border-top: 1px solid var(--border); display: flex; gap: 10px; align-items: center; background: var(--bg-main); }
-        .chat-input-area input { flex: 1; padding: 14px; border: 1px solid var(--border); border-radius: 24px; background: var(--bg-sidebar); color: var(--text-main); outline: none; font-size: 15px; }
-        .send-btn { width: 45px; height: 45px; border-radius: 50%; background: var(--primary); color: #fff; border: none; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 18px; transition: transform 0.1s; flex-shrink: 0; }
-        .send-btn:active { transform: scale(0.95); }
+        /* Поле вводу */
+        .input-area { padding: 15px 25px; display: flex; gap: 15px; align-items: center; background: var(--bg-main); border-top: 1px solid var(--border); }
+        .input-area input { flex: 1; padding: 12px 18px; border-radius: 25px; border: 1px solid var(--border); outline: none; background: var(--bg-sidebar); color: var(--text-main); }
 
-        .no-chat-selected { flex: 1; display: flex; justify-content: center; align-items: center; color: var(--text-muted); font-size: 16px; background: var(--bg-sidebar); }
+        /* Модалки */
+        .modal { display: none; position: fixed; inset: 0; background: var(--modal-bg); z-index: 3000; align-items: center; justify-content: center; padding: 20px; }
+        .modal-content { background: var(--bg-main); padding: 30px; border-radius: 15px; width: 100%; max-width: 400px; position: relative; }
+        .close { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; }
 
-        /* Modals */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--modal-bg); z-index: 2000; justify-content: center; align-items: center; }
-        .modal-content { background: var(--bg-main); padding: 30px; border-radius: 12px; width: 400px; max-width: 90%; box-shadow: 0 5px 20px rgba(0,0,0,0.2); animation: scaleIn 0.2s ease-out; }
-        @keyframes scaleIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; font-weight: bold; font-size: 20px; }
-        .close-btn { cursor: pointer; color: var(--text-muted); font-size: 24px; }
-        
-        .settings-group { margin-bottom: 20px; }
-        .settings-group label { display: block; margin-bottom: 8px; font-weight: 500; }
-        .settings-group input[type="text"] { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-main); color: var(--text-main); }
-        .settings-group input[type="file"] { margin-top: 5px; }
-        
-        .toggle-switch { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; cursor: pointer; }
-        .switch { position: relative; display: inline-block; width: 40px; height: 22px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 22px; }
-        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: var(--primary); }
-        input:checked + .slider:before { transform: translateX(18px); }
+        /* Галочка */
+        .verified { color: var(--primary); margin-left: 5px; font-size: 14px; }
+        .user-item.active .verified { color: white; }
 
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(150,150,150,0.3); border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(150,150,150,0.5); }
+        /* Адаптивність */
+        @media (max-width: 768px) {
+            .sidebar { width: 100%; position: absolute; height: 100%; z-index: 100; }
+            .chat-area { width: 100%; }
+            .chat-header .back-btn { display: block; }
+            .sidebar.hidden { transform: translateX(-100%); }
+        }
+
+        /* Додаткові стилі */
+        .status-online { color: var(--primary); font-size: 13px; }
+        .no-chat { display: flex; flex: 1; align-items: center; justify-content: center; color: var(--text-muted); background: var(--bg-sidebar); }
     </style>
 </head>
 <body>
 
     <div id="auth-screen">
-        <div class="auth-box" id="login-box">
-            <h2>Вхід у Telegram</h2>
-            <input type="text" id="login-username" placeholder="Username" autocomplete="off">
-            <input type="password" id="login-password" placeholder="Пароль">
+        <div class="auth-box" id="auth-login">
+            <h2>Увійти в акаунт</h2>
+            <input type="text" id="login-username" placeholder="Логін">
+            <input type="password" id="login-pass" placeholder="Пароль">
             <button class="btn" onclick="app.login()">Увійти</button>
-            <div class="auth-toggle" onclick="app.toggleAuth('register')">Немає акаунту? Створити</div>
+            <p style="margin-top: 15px; font-size: 14px;">Немає акаунту? <a href="#" onclick="app.showReg(true)" style="color:var(--primary)">Реєстрація</a></p>
         </div>
-
-        <div class="auth-box" id="register-box" style="display: none;">
+        <div class="auth-box" id="auth-reg" style="display: none;">
             <h2>Реєстрація</h2>
-            <input type="text" id="reg-username" placeholder="Username" autocomplete="off">
-            <input type="password" id="reg-password" placeholder="Пароль">
-            <input type="password" id="reg-password-confirm" placeholder="Підтвердіть пароль">
-            <button class="btn" onclick="app.register()">Зареєструватись</button>
-            <div class="auth-toggle" onclick="app.toggleAuth('login')">Вже є акаунт? Увійти</div>
+            <input type="text" id="reg-username" placeholder="Придумайте логін">
+            <input type="password" id="reg-pass" placeholder="Пароль">
+            <input type="password" id="reg-pass-confirm" placeholder="Підтвердіть пароль">
+            <button class="btn" onclick="app.register()">Створити акаунт</button>
+            <p style="margin-top: 15px; font-size: 14px;">Вже є акаунт? <a href="#" onclick="app.showReg(false)" style="color:var(--primary)">Увійти</a></p>
         </div>
     </div>
 
     <div id="app-screen">
-        <aside class="sidebar">
-            <header class="sidebar-header">
-                <div class="logo-area" id="app-logo">Telegram Web</div>
-                <div>
-                    <button class="icon-btn" onclick="app.openModal('settings-modal')" title="Налаштування">⚙️</button>
-                    <button class="icon-btn" onclick="app.logout()" title="Вийти">🚪</button>
+        <div class="main-container">
+            <aside class="sidebar" id="sidebar">
+                <div class="sidebar-header">
+                    <div class="logo" onclick="app.adminTrigger()">Telegram</div>
+                    <button class="btn" style="padding: 5px 10px; font-size: 12px;" onclick="app.openSettings()">Профіль</button>
                 </div>
-            </header>
-            <div class="search-bar">
-                <input type="text" id="search-input" placeholder="Пошук користувачів..." oninput="app.renderUserList()">
-            </div>
-            <div class="user-list" id="user-list">
+                <div class="search-container">
+                    <input type="text" id="user-search" placeholder="Пошук..." oninput="app.renderUsers()">
                 </div>
-        </aside>
+                <div class="user-list" id="user-list">
+                    </div>
+            </aside>
 
-        <main class="chat-area" id="chat-area">
-            <div class="no-chat-selected" id="no-chat">
-                Виберіть чат для початку спілкування
-            </div>
-            
-            <div id="active-chat" style="display: none; height: 100%; flex-direction: column;">
-                <header class="chat-header">
-                    <div class="chat-header-info">
-                        <div class="avatar" id="chat-avatar"></div>
+            <main class="chat-area" id="chat-area">
+                <div id="chat-placeholder" class="no-chat">Виберіть чат, щоб почати спілкування</div>
+                
+                <div id="chat-content" style="display: none; flex-direction: column; height: 100%;">
+                    <header class="chat-header">
+                        <span class="back-btn" onclick="app.closeChat()">←</span>
+                        <div class="avatar" id="header-avatar" style="width: 40px; height: 40px; margin-right: 12px;"></div>
                         <div>
-                            <div class="user-name">
-                                <span id="chat-username">User</span>
-                                <span id="chat-verified" class="verified-tick" style="display:none;">✓</span>
+                            <div style="font-weight: bold; display: flex; align-items: center;">
+                                <span id="header-name">Username</span>
+                                <span id="header-verified"></span>
                             </div>
-                            <div class="status">Онлайн</div>
+                            <div class="status-online">онлайн</div>
                         </div>
-                    </div>
-                </header>
-                
-                <div class="messages-container" id="messages-container">
-                    </div>
-                
-                <footer class="chat-input-area">
-                    <input type="text" id="message-input" placeholder="Написати повідомлення..." onkeypress="if(event.key==='Enter') app.sendMessage()">
-                    <button class="send-btn" onclick="app.sendMessage()">➤</button>
-                </footer>
-            </div>
-        </main>
-    </div>
+                    </header>
 
-    <div class="modal" id="settings-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <span>Профіль та Налаштування</span>
-                <span class="close-btn" onclick="app.closeModal('settings-modal')">&times;</span>
-            </div>
-            
-            <div class="settings-group">
-                <label>Аватар (завантажити фото)</label>
-                <input type="file" id="avatar-upload" accept="image/*" onchange="app.uploadAvatar(event)">
-            </div>
-            
-            <div class="settings-group">
-                <label>Нікнейм</label>
-                <input type="text" id="profile-nickname">
-            </div>
-            
-            <div class="toggle-switch">
-                <span>Темна тема</span>
-                <label class="switch">
-                    <input type="checkbox" id="theme-toggle" onchange="app.toggleTheme(this.checked)">
-                    <span class="slider"></span>
-                </label>
-            </div>
-            
-            <div class="toggle-switch">
-                <span>Звук повідомлень</span>
-                <label class="switch">
-                    <input type="checkbox" id="sound-toggle" onchange="app.toggleSound(this.checked)">
-                    <span class="slider"></span>
-                </label>
-            </div>
+                    <div class="messages-container" id="msg-box"></div>
 
-            <button class="btn" onclick="app.saveProfile()">Зберегти зміни</button>
+                    <div class="input-area">
+                        <input type="text" id="msg-input" placeholder="Напишіть повідомлення..." onkeypress="if(event.key==='Enter') app.send()">
+                        <button class="btn" onclick="app.send()">Надіслати</button>
+                    </div>
+                </div>
+            </main>
         </div>
     </div>
 
-    <div class="modal" id="admin-modal">
+    <div class="modal" id="modal-settings">
         <div class="modal-content">
-            <div class="modal-header">
-                <span style="color: var(--danger);">Адмін Панель</span>
-                <span class="close-btn" onclick="app.closeModal('admin-modal')">&times;</span>
+            <span class="close" onclick="app.closeModals()">&times;</span>
+            <h3>Налаштування профілю</h3>
+            <div style="margin: 20px 0;">
+                <label>Нікнейм:</label>
+                <input type="text" id="set-nick" style="width:100%; padding:10px; margin:10px 0; border:1px solid #ccc; border-radius:5px;">
+                <label>URL Аватарки:</label>
+                <input type="text" id="set-avatar" placeholder="https://..." style="width:100%; padding:10px; margin:10px 0; border:1px solid #ccc; border-radius:5px;">
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+                    <span>Темна тема:</span>
+                    <input type="checkbox" id="set-theme" onchange="app.toggleTheme()">
+                </div>
             </div>
-            <div class="settings-group">
-                <label>Username користувача</label>
-                <input type="text" id="admin-target-user" placeholder="Введіть username">
-            </div>
-            <div style="display: flex; gap: 10px;">
-                <button class="btn" style="background: var(--primary);" onclick="app.setVerified(true)">Видати ✓</button>
-                <button class="btn" style="background: var(--danger);" onclick="app.setVerified(false)">Забрати ✓</button>
+            <button class="btn" style="width: 100%;" onclick="app.saveProfile()">Зберегти</button>
+            <button class="btn btn-danger" style="width: 100%; margin-top: 10px;" onclick="app.logout()">Вийти з акаунта</button>
+        </div>
+    </div>
+
+    <div class="modal" id="modal-admin">
+        <div class="modal-content">
+            <span class="close" onclick="app.closeModals()">&times;</span>
+            <h3 style="color: var(--danger)">Адмін Панель</h3>
+            <div style="margin: 20px 0;">
+                <input type="text" id="admin-user" placeholder="Логін користувача" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ccc; border-radius:5px;">
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn" style="flex:1" onclick="app.setVerify(true)">Дати ✔</button>
+                    <button class="btn btn-danger" style="flex:1" onclick="app.setVerify(false)">Забрати</button>
+                </div>
             </div>
         </div>
     </div>
@@ -240,320 +206,241 @@
     <script>
         const app = {
             currentUser: null,
-            activeChatUser: null,
-            logoClicks: 0,
-            logoClickTimer: null,
+            activeChat: null,
+            clickCount: 0,
             
-            // Database operations (localStorage wrapper)
-            db: {
-                getUsers: () => JSON.parse(localStorage.getItem('tg_users')) || {},
-                setUsers: (users) => localStorage.setItem('tg_users', JSON.stringify(users)),
-                getMessages: () => JSON.parse(localStorage.getItem('tg_messages')) || [],
-                setMessages: (msgs) => localStorage.setItem('tg_messages', JSON.stringify(msgs)),
-                getSettings: () => JSON.parse(localStorage.getItem('tg_settings')) || { theme: 'light', sound: true },
-                setSettings: (settings) => localStorage.setItem('tg_settings', JSON.stringify(settings)),
-            },
-
             init() {
-                const loggedInUser = localStorage.getItem('tg_session');
-                this.applySettings();
+                this.loadSession();
+                if (this.currentUser) this.start();
                 
-                if (loggedInUser && this.db.getUsers()[loggedInUser]) {
-                    this.currentUser = loggedInUser;
-                    this.showScreen('app-screen');
-                    this.renderUserList();
-                } else {
-                    this.showScreen('auth-screen');
-                }
-
-                // Admin panel trigger logic
-                document.getElementById('app-logo').addEventListener('click', () => {
-                    this.logoClicks++;
-                    clearTimeout(this.logoClickTimer);
-                    this.logoClickTimer = setTimeout(() => this.logoClicks = 0, 2000);
-                    if (this.logoClicks >= 5) {
-                        this.openModal('admin-modal');
-                        this.logoClicks = 0;
-                    }
-                });
-
-                // Real-time simulation via storage events (multi-tab sync)
-                window.addEventListener('storage', (e) => {
-                    if (e.key === 'tg_messages' && this.activeChatUser) this.renderMessages();
-                    if (e.key === 'tg_users') this.renderUserList();
-                });
-                
-                // Fallback polling for single-tab pseudo-realtime feeling if backend were used (here just checking localStorage diff isn't needed in same tab, but useful if multiple tabs)
-                setInterval(() => {
-                    if(this.activeChatUser) {
-                        const count = this.db.getMessages().length;
-                        if(this.lastMsgCount !== count) {
-                            this.renderMessages();
-                            this.lastMsgCount = count;
-                        }
-                    }
-                }, 1000);
+                // Таймер для кліків по лого (адмін панель)
+                setInterval(() => { if(this.clickCount > 0) this.clickCount = 0; }, 3000);
             },
 
-            applySettings() {
-                const s = this.db.getSettings();
-                document.documentElement.setAttribute('data-theme', s.theme);
-                document.getElementById('theme-toggle').checked = s.theme === 'dark';
-                document.getElementById('sound-toggle').checked = s.sound;
-            },
+            // Дані
+            getData(key) { return JSON.parse(localStorage.getItem(key)) || (key === 'users' ? {} : []); },
+            setData(key, val) { localStorage.setItem(key, JSON.stringify(val)); },
 
-            playSound() {
-                if (!this.db.getSettings().sound) return;
-                try {
-                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                    const osc = ctx.createOscillator();
-                    const gain = ctx.createGain();
-                    osc.connect(gain);
-                    gain.connect(ctx.destination);
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(600, ctx.currentTime);
-                    gain.gain.setValueAtTime(0.1, ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.1);
-                    osc.start();
-                    osc.stop(ctx.currentTime + 0.1);
-                } catch(e) {}
-            },
-
-            showScreen(id) {
-                document.getElementById('auth-screen').style.display = 'none';
-                document.getElementById('app-screen').style.display = 'none';
-                document.getElementById(id).style.display = id === 'auth-screen' ? 'flex' : 'block';
-            },
-
-            toggleAuth(mode) {
-                document.getElementById('login-box').style.display = mode === 'login' ? 'block' : 'none';
-                document.getElementById('register-box').style.display = mode === 'register' ? 'block' : 'none';
+            // Авторизація
+            showReg(val) {
+                document.getElementById('auth-login').style.display = val ? 'none' : 'block';
+                document.getElementById('auth-reg').style.display = val ? 'block' : 'none';
             },
 
             register() {
                 const u = document.getElementById('reg-username').value.trim();
-                const p = document.getElementById('reg-password').value;
-                const pc = document.getElementById('reg-password-confirm').value;
+                const p = document.getElementById('reg-pass').value;
+                const pc = document.getElementById('reg-pass-confirm').value;
+                const users = this.getData('users');
 
-                if (!u || !p) return alert('Заповніть всі поля');
-                if (p !== pc) return alert('Паролі не співпадають');
-                
-                const users = this.db.getUsers();
-                if (users[u]) return alert('Користувач вже існує');
+                if (!u || p.length < 4) return alert("Логін і пароль (мін. 4 симв.) обов'язкові");
+                if (p !== pc) return alert("Паролі не збігаються");
+                if (users[u]) return alert("Користувач вже існує");
 
-                users[u] = { username: u, password: p, nickname: u, avatar: '', verified: false };
-                this.db.setUsers(users);
-                
-                this.currentUser = u;
-                localStorage.setItem('tg_session', u);
-                this.showScreen('app-screen');
-                this.renderUserList();
+                users[u] = { username: u, pass: p, nick: u, avatar: '', verified: u === 'admin' };
+                this.setData('users', users);
+                alert("Успіх! Увійдіть.");
+                this.showReg(false);
             },
 
             login() {
                 const u = document.getElementById('login-username').value.trim();
-                const p = document.getElementById('login-password').value;
+                const p = document.getElementById('login-pass').value;
+                const users = this.getData('users');
+
+                if (users[u] && users[u].pass === p) {
+                    this.currentUser = users[u];
+                    localStorage.setItem('tg_session', u);
+                    this.start();
+                } else {
+                    alert("Невірний логін або пароль");
+                }
+            },
+
+            loadSession() {
+                const session = localStorage.getItem('tg_session');
+                if (session) {
+                    const users = this.getData('users');
+                    this.currentUser = users[session];
+                }
+            },
+
+            start() {
+                document.getElementById('auth-screen').style.display = 'none';
+                document.getElementById('app-screen').style.display = 'block';
+                this.renderUsers();
                 
-                const users = this.db.getUsers();
-                if (!users[u] || users[u].password !== p) return alert('Невірний логін або пароль');
-
-                this.currentUser = u;
-                localStorage.setItem('tg_session', u);
-                this.showScreen('app-screen');
-                this.renderUserList();
+                // Завантаження теми
+                if(localStorage.getItem('theme') === 'dark') {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                    document.getElementById('set-theme').checked = true;
+                }
             },
 
-            logout() {
-                localStorage.removeItem('tg_session');
-                this.currentUser = null;
-                this.activeChatUser = null;
-                document.getElementById('active-chat').style.display = 'none';
-                document.getElementById('no-chat').style.display = 'flex';
-                this.showScreen('auth-screen');
-            },
-
-            getInitials(name) {
-                return name ? name.substring(0, 2).toUpperCase() : 'U';
-            },
-
-            renderUserList() {
-                const users = this.db.getUsers();
-                const search = document.getElementById('search-input').value.toLowerCase();
+            // Рендер користувачів
+            renderUsers() {
                 const list = document.getElementById('user-list');
+                const search = document.getElementById('user-search').value.toLowerCase();
+                const users = this.getData('users');
                 list.innerHTML = '';
 
                 Object.values(users).forEach(user => {
-                    if (user.username === this.currentUser) return; // Hide self
-                    if (!user.username.toLowerCase().includes(search) && !(user.nickname || '').toLowerCase().includes(search)) return;
+                    if (user.username === this.currentUser.username) return;
+                    if (!user.username.toLowerCase().includes(search) && !user.nick.toLowerCase().includes(search)) return;
 
                     const div = document.createElement('div');
-                    div.className = `user-item ${this.activeChatUser === user.username ? 'active' : ''}`;
-                    div.onclick = () => this.openChat(user.username);
-
-                    const avatarStyle = user.avatar ? `background-image: url('${user.avatar}')` : '';
+                    div.className = `user-item ${this.activeChat === user.username ? 'active' : ''}`;
+                    div.onclick = () => this.selectChat(user.username);
+                    
+                    const avatar = user.avatar ? `style="background-image:url(${user.avatar})"` : '';
+                    const initial = user.avatar ? '' : user.nick[0].toUpperCase();
                     
                     div.innerHTML = `
-                        <div class="avatar" style="${avatarStyle}">${user.avatar ? '' : this.getInitials(user.nickname || user.username)}</div>
-                        <div class="user-info">
-                            <div class="user-name">
-                                ${user.nickname || user.username} 
-                                ${user.verified ? '<span class="verified-tick">✓</span>' : ''}
-                            </div>
-                            <div style="font-size:12px; color:var(--text-muted); margin-top:3px;">@${user.username}</div>
+                        <div class="avatar" ${avatar}>${initial}</div>
+                        <div style="flex:1">
+                            <div style="font-weight:600">${user.nick} ${user.verified ? '<span class="verified">✔</span>' : ''}</div>
+                            <div class="text-muted" style="font-size:13px">@${user.username}</div>
                         </div>
                     `;
                     list.appendChild(div);
                 });
             },
 
-            openChat(username) {
-                this.activeChatUser = username;
-                this.renderUserList(); // Update active class
+            // Чат логіка
+            selectChat(username) {
+                this.activeChat = username;
+                const users = this.getData('users');
+                const target = users[username];
+
+                document.getElementById('chat-placeholder').style.display = 'none';
+                document.getElementById('chat-content').style.display = 'flex';
+                document.getElementById('sidebar').classList.add('hidden'); // для мобільних
+
+                document.getElementById('header-name').innerText = target.nick;
+                document.getElementById('header-verified').innerHTML = target.verified ? '<span class="verified">✔</span>' : '';
                 
-                const user = this.db.getUsers()[username];
-                
-                document.getElementById('no-chat').style.display = 'none';
-                const chatArea = document.getElementById('active-chat');
-                chatArea.style.display = 'flex';
-                
-                const avatarEl = document.getElementById('chat-avatar');
-                if(user.avatar) {
-                    avatarEl.style.backgroundImage = `url('${user.avatar}')`;
-                    avatarEl.innerHTML = '';
-                } else {
-                    avatarEl.style.backgroundImage = '';
-                    avatarEl.innerHTML = this.getInitials(user.nickname || user.username);
-                }
-                
-                document.getElementById('chat-username').innerText = user.nickname || user.username;
-                document.getElementById('chat-verified').style.display = user.verified ? 'inline' : 'none';
-                
+                const avatar = target.avatar ? `url(${target.avatar})` : 'none';
+                const initial = target.avatar ? '' : target.nick[0].toUpperCase();
+                const headAv = document.getElementById('header-avatar');
+                headAv.style.backgroundImage = avatar;
+                headAv.innerText = initial;
+                headAv.style.backgroundSize = 'cover';
+
                 this.renderMessages();
+                this.renderUsers(); // Оновити активний клас
+            },
+
+            closeChat() {
+                document.getElementById('sidebar').classList.remove('hidden');
             },
 
             renderMessages() {
-                if (!this.activeChatUser) return;
-                
-                const allMsgs = this.db.getMessages();
-                const container = document.getElementById('messages-container');
-                container.innerHTML = '';
-                
-                const chatMsgs = allMsgs.filter(m => 
-                    (m.from === this.currentUser && m.to === this.activeChatUser) ||
-                    (m.from === this.activeChatUser && m.to === this.currentUser)
-                );
+                const box = document.getElementById('msg-box');
+                const messages = this.getData('messages');
+                box.innerHTML = '';
 
-                chatMsgs.forEach(m => {
-                    const div = document.createElement('div');
-                    const isOwn = m.from === this.currentUser;
-                    div.className = `message ${isOwn ? 'msg-own' : 'msg-other'}`;
-                    
-                    const time = new Date(m.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                    
-                    div.innerHTML = `
-                        <div>${this.escapeHTML(m.text)}</div>
-                        <span class="msg-time">${time}</span>
-                    `;
-                    container.appendChild(div);
+                messages.forEach(m => {
+                    if ((m.from === this.currentUser.username && m.to === this.activeChat) ||
+                        (m.from === this.activeChat && m.to === this.currentUser.username)) {
+                        
+                        const div = document.createElement('div');
+                        div.className = `msg ${m.from === this.currentUser.username ? 'own' : 'other'}`;
+                        div.innerHTML = `
+                            ${m.text}
+                            <span class="msg-time">${m.time}</span>
+                        `;
+                        box.appendChild(div);
+                    }
                 });
-
-                container.scrollTop = container.scrollHeight;
+                box.scrollTop = box.scrollHeight;
             },
 
-            sendMessage() {
-                const input = document.getElementById('message-input');
+            send() {
+                const input = document.getElementById('msg-input');
                 const text = input.value.trim();
-                if (!text || !this.activeChatUser) return;
+                if (!text || !this.activeChat) return;
 
-                const msgs = this.db.getMessages();
-                msgs.push({
-                    id: Date.now(),
-                    from: this.currentUser,
-                    to: this.activeChatUser,
+                const messages = this.getData('messages');
+                messages.push({
+                    from: this.currentUser.username,
+                    to: this.activeChat,
                     text: text,
-                    timestamp: Date.now()
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 });
-                
-                this.db.setMessages(msgs);
+
+                this.setData('messages', messages);
                 input.value = '';
-                this.playSound();
                 this.renderMessages();
             },
 
-            escapeHTML(str) {
-                return str.replace(/[&<>'"]/g, tag => ({
-                    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
-                }[tag]));
-            },
-
-            // Modals & Settings
-            openModal(id) {
-                document.getElementById(id).style.display = 'flex';
-                if(id === 'settings-modal') {
-                    const u = this.db.getUsers()[this.currentUser];
-                    document.getElementById('profile-nickname').value = u.nickname || u.username;
-                }
-            },
-            
-            closeModal(id) {
-                document.getElementById(id).style.display = 'none';
-            },
-
-            toggleTheme(isDark) {
-                const s = this.db.getSettings();
-                s.theme = isDark ? 'dark' : 'light';
-                this.db.setSettings(s);
-                this.applySettings();
-            },
-
-            toggleSound(isOn) {
-                const s = this.db.getSettings();
-                s.sound = isOn;
-                this.db.setSettings(s);
-            },
-
-            uploadAvatar(e) {
-                const file = e.target.files[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    this.tempAvatar = event.target.result;
-                    alert('Фото завантажено. Натисніть "Зберегти зміни".');
-                };
-                reader.readAsDataURL(file);
+            // Налаштування
+            openSettings() {
+                document.getElementById('set-nick').value = this.currentUser.nick;
+                document.getElementById('set-avatar').value = this.currentUser.avatar;
+                document.getElementById('modal-settings').style.display = 'flex';
             },
 
             saveProfile() {
-                const nick = document.getElementById('profile-nickname').value.trim();
-                const users = this.db.getUsers();
-                if (nick) users[this.currentUser].nickname = nick;
-                if (this.tempAvatar) {
-                    users[this.currentUser].avatar = this.tempAvatar;
-                    this.tempAvatar = null;
-                }
-                this.db.setUsers(users);
-                this.closeModal('settings-modal');
-                this.renderUserList();
+                const users = this.getData('users');
+                const newNick = document.getElementById('set-nick').value.trim();
+                const newAv = document.getElementById('set-avatar').value.trim();
+
+                users[this.currentUser.username].nick = newNick || this.currentUser.username;
+                users[this.currentUser.username].avatar = newAv;
+                
+                this.setData('users', users);
+                this.currentUser = users[this.currentUser.username];
+                this.closeModals();
+                this.renderUsers();
+                if(this.activeChat) this.selectChat(this.activeChat);
             },
 
-            // Admin features
-            setVerified(state) {
-                const target = document.getElementById('admin-target-user').value.trim();
-                if(!target) return alert('Введіть username');
-                const users = this.db.getUsers();
-                if(!users[target]) return alert('Користувача не знайдено');
-                
-                users[target].verified = state;
-                this.db.setUsers(users);
-                alert(`Користувачу ${target} ${state ? 'видано' : 'забрано'} галочку.`);
-                this.closeModal('admin-modal');
-                this.renderUserList();
-                if(this.activeChatUser === target) this.openChat(target); // refresh header
+            toggleTheme() {
+                const isDark = document.getElementById('set-theme').checked;
+                document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+                localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            },
+
+            logout() {
+                localStorage.removeItem('tg_session');
+                location.reload();
+            },
+
+            // Адмін Панель
+            adminTrigger() {
+                this.clickCount++;
+                if (this.clickCount >= 5) {
+                    if (this.currentUser.username === 'admin') {
+                        document.getElementById('modal-admin').style.display = 'flex';
+                    } else {
+                        alert("Тільки адмін може це відкрити!");
+                    }
+                    this.clickCount = 0;
+                }
+            },
+
+            setVerify(status) {
+                const targetName = document.getElementById('admin-user').value.trim();
+                const users = this.getData('users');
+
+                if (users[targetName]) {
+                    users[targetName].verified = status;
+                    this.setData('users', users);
+                    alert(`Статус для @${targetName} оновлено!`);
+                    this.renderUsers();
+                    if(this.activeChat === targetName) this.selectChat(targetName);
+                } else {
+                    alert("Користувача не знайдено");
+                }
+            },
+
+            closeModals() {
+                document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
             }
         };
 
-        // Boot the app
-        window.onload = () => app.init();
+        // Старт
+        app.init();
     </script>
 </body>
 </html>
