@@ -1,1205 +1,845 @@
 <!DOCTYPE html>
 <html lang="uk" data-theme="light">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Telegram Web Pro</title>
-    <style>
-        :root {
-            --primary: #3390ec;
-            --primary-hover: #2a7cbd;
-            --bg-main: #ffffff;
-            --bg-sidebar: #f4f4f5;
-            --text-main: #000000;
-            --text-muted: #707579;
-            --border: #e0e0e0;
-            --msg-own: #e3ffe3;
-            --msg-other: #ffffff;
-            --danger: #e53935;
-            --modal-bg: rgba(0,0,0,0.5);
-        }
-        [data-theme="dark"] {
-            --primary: #8774e1;
-            --primary-hover: #7361c7;
-            --bg-main: #0f0f0f;
-            --bg-sidebar: #212121;
-            --text-main: #ffffff;
-            --text-muted: #aaaaaa;
-            --border: #333333;
-            --msg-own: #766ac8;
-            --msg-other: #212121;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
-        body { height: 100vh; display: flex; background: var(--bg-main); color: var(--text-main); overflow: hidden; }
-        #auth-screen { position: fixed; inset: 0; display: flex; justify-content: center; align-items: center; background: var(--bg-sidebar); z-index: 2000; }
-        #app-screen { display: none; width: 100%; height: 100%; }
-        .auth-box { background: var(--bg-main); padding: 40px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
-        .auth-box h2 { margin-bottom: 25px; color: var(--primary); }
-        .auth-box input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-main); color: var(--text-main); outline: none; }
-        .auth-box input:focus { border-color: var(--primary); }
-        .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s; background: var(--primary); color: white; }
-        .btn:hover { background: var(--primary-hover); transform: translateY(-1px); }
-        .btn:active { transform: translateY(0); }
-        .btn-danger { background: var(--danger); }
-        .btn-danger:hover { background: #c62828; }
-        .btn-success { background: #43a047; }
-        .btn-success:hover { background: #2e7d32; }
-        .btn-gray { background: #888; }
-        .btn-gray:hover { background: #666; }
-        .main-container { display: flex; width: 100%; height: 100%; }
-        .sidebar { width: 350px; border-right: 1px solid var(--border); background: var(--bg-sidebar); display: flex; flex-direction: column; flex-shrink: 0; transition: transform 0.3s ease; }
-        .sidebar-header { padding: 15px; display: flex; justify-content: space-between; align-items: center; background: var(--bg-main); }
-        .logo { font-weight: bold; color: var(--primary); cursor: pointer; user-select: none; font-size: 1.2rem; }
-        .search-container { padding: 10px; background: var(--bg-main); }
-        .search-container input { width: 100%; padding: 10px; border-radius: 20px; border: 1px solid var(--border); background: var(--bg-sidebar); outline: none; color: var(--text-main); }
-        .user-list { flex: 1; overflow-y: auto; }
-        .user-item { display: flex; align-items: center; padding: 12px 15px; cursor: pointer; transition: 0.2s; border-bottom: 1px solid rgba(0,0,0,0.03); }
-        .user-item:hover { background: rgba(0,0,0,0.05); }
-        .user-item.active { background: var(--primary); color: white; }
-        .user-item.active .text-muted { color: rgba(255,255,255,0.8); }
-        .user-item.banned-user { opacity: 0.4; pointer-events: none; }
-        .avatar { width: 50px; height: 50px; border-radius: 50%; background: #ccc; margin-right: 15px; flex-shrink: 0; background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; }
-        .chat-area { flex: 1; display: flex; flex-direction: column; background: var(--bg-main); position: relative; }
-        .chat-header { height: 60px; padding: 0 20px; display: flex; align-items: center; border-bottom: 1px solid var(--border); background: var(--bg-main); z-index: 10; }
-        .chat-header .back-btn { display: none; margin-right: 15px; font-size: 20px; cursor: pointer; }
-        .messages-container { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; background: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-attachment: fixed; }
-        .msg { max-width: 70%; padding: 10px 15px; border-radius: 12px; font-size: 15px; position: relative; animation: fadeIn 0.2s ease; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        .msg.own { align-self: flex-end; background: var(--msg-own); border-bottom-right-radius: 2px; }
-        .msg.other { align-self: flex-start; background: var(--msg-other); border-bottom-left-radius: 2px; }
-        .msg-time { font-size: 11px; opacity: 0.6; margin-top: 5px; text-align: right; display: block; }
-        .msg-deleted { font-style: italic; opacity: 0.5; }
-        .msg-edited { font-size: 10px; opacity: 0.5; margin-left: 3px; }
-        .reply-quote { border-left: 3px solid var(--primary); padding-left: 7px; margin-bottom: 6px; font-size: 12px; opacity: 0.7; border-radius: 2px; }
-        .input-area { padding: 15px 25px; display: flex; gap: 10px; align-items: center; background: var(--bg-main); border-top: 1px solid var(--border); }
-        .input-area input { flex: 1; padding: 12px 18px; border-radius: 25px; border: 1px solid var(--border); outline: none; background: var(--bg-sidebar); color: var(--text-main); }
-        .reply-bar { padding: 8px 20px; background: var(--bg-sidebar); border-top: 1px solid var(--border); display: none; align-items: center; justify-content: space-between; font-size: 13px; }
-        .reply-bar.visible { display: flex; }
-        .modal { display: none; position: fixed; inset: 0; background: var(--modal-bg); z-index: 3000; align-items: flex-start; justify-content: center; padding: 20px; overflow-y: auto; }
-        .modal-content { background: var(--bg-main); padding: 30px; border-radius: 15px; width: 100%; max-width: 420px; position: relative; margin: auto; }
-        .modal-content.wide { max-width: 580px; }
-        .close { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; line-height: 1; }
-        .verified { color: var(--primary); margin-left: 5px; font-size: 14px; }
-        .user-item.active .verified { color: white; }
-        .verified-blue { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; background: #2ca5e0; border-radius: 50%; margin-left: 5px; font-size: 11px; color: white; font-weight: bold; vertical-align: middle; position: relative; top: -1px; }
-        .user-item.active .verified-blue { background: rgba(255,255,255,0.9); color: #2ca5e0; }
-        .banned-label { font-size: 11px; color: var(--danger); font-weight: bold; }
-        .user-item.active .banned-label { color: #ffaaaa; }
-        .muted-label { font-size: 11px; color: orange; font-weight: bold; }
-        .unread-badge { background: var(--primary); color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 11px; display: flex; align-items: center; justify-content: center; margin-left: auto; flex-shrink: 0; }
-        .user-item.active .unread-badge { background: white; color: var(--primary); }
-        .msg-preview { font-size: 12px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
-        .msg-img { max-width: 250px; max-height: 200px; border-radius: 8px; display: block; margin-bottom: 5px; cursor: pointer; }
-        .ctx-menu { position: fixed; background: var(--bg-main); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); z-index: 5000; min-width: 155px; overflow: hidden; }
-        .ctx-item { padding: 10px 15px; cursor: pointer; font-size: 14px; transition: 0.15s; }
-        .ctx-item:hover { background: var(--bg-sidebar); }
-        .ctx-item.danger { color: var(--danger); }
-        /* Settings */
-        .settings-tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 15px; overflow-x: auto; }
-        .settings-tab { padding: 8px 12px; cursor: pointer; font-size: 13px; border-bottom: 2px solid transparent; color: var(--text-muted); transition: 0.2s; white-space: nowrap; }
-        .settings-tab.active { border-bottom-color: var(--primary); color: var(--primary); font-weight: 600; }
-        .stab-content { display: none; }
-        .stab-content.active { display: block; }
-        .s-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
-        .s-row:last-child { border-bottom: none; }
-        .s-label { color: var(--text-muted); font-size: 12px; margin-bottom: 4px; margin-top: 8px; }
-        .s-input { width: 100%; padding: 9px; border: 1px solid var(--border); border-radius: 7px; background: var(--bg-sidebar); color: var(--text-main); outline: none; font-size: 14px; margin-bottom: 8px; }
-        .s-input:focus { border-color: var(--primary); }
-        .profile-big-av { width: 75px; height: 75px; border-radius: 50%; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: bold; color: white; background-size: cover; background-position: center; }
-        .toggle { position: relative; display: inline-block; width: 42px; height: 24px; }
-        .toggle input { opacity: 0; width: 0; height: 0; }
-        .toggle-sl { position: absolute; cursor: pointer; inset: 0; background: #ccc; border-radius: 24px; transition: 0.3s; }
-        .toggle-sl:before { content: ""; position: absolute; width: 18px; height: 18px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.3s; }
-        input:checked + .toggle-sl { background: var(--primary); }
-        input:checked + .toggle-sl:before { transform: translateX(18px); }
-        /* Vortex admin */
-        .vortex-hdr { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
-        .vortex-hdr h3 { color: #2ca5e0; font-size: 18px; }
-        .admin-tabs { display: flex; gap: 5px; margin-bottom: 15px; flex-wrap: wrap; }
-        .admin-tab { padding: 6px 11px; border: 1px solid var(--border); border-radius: 20px; cursor: pointer; font-size: 12px; background: var(--bg-sidebar); color: var(--text-main); transition: 0.2s; }
-        .admin-tab.active { background: #2ca5e0; color: white; border-color: #2ca5e0; }
-        .atab-content { display: none; }
-        .atab-content.active { display: block; }
-        .adm-ulist { max-height: 320px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
-        .adm-urow { display: flex; align-items: center; padding: 9px 10px; border-bottom: 1px solid var(--border); gap: 6px; }
-        .adm-urow:last-child { border-bottom: none; }
-        .adm-uinfo { flex: 1; min-width: 0; }
-        .adm-uinfo .un { font-weight: 600; font-size: 13px; }
-        .adm-uinfo .ul { font-size: 11px; color: var(--text-muted); }
-        .adm-uinfo .up { font-size: 11px; color: #e53935; font-family: monospace; background: rgba(229,57,53,0.1); padding: 1px 5px; border-radius: 4px; display: inline-block; margin-top: 1px; }
-        .adm-acts { display: flex; gap: 3px; flex-wrap: wrap; justify-content: flex-end; }
-        .adm-acts button { padding: 3px 7px; font-size: 11px; border: none; border-radius: 5px; cursor: pointer; font-weight: 600; transition: 0.2s; white-space: nowrap; }
-        .ab-blue { background: #2ca5e0; color: white; }
-        .ab-blue:hover { background: #1a90c7; }
-        .ab-gray { background: #888; color: white; }
-        .ab-gray:hover { background: #555; }
-        .ab-red { background: var(--danger); color: white; }
-        .ab-red:hover { background: #c62828; }
-        .ab-green { background: #43a047; color: white; }
-        .ab-green:hover { background: #2e7d32; }
-        .ab-orange { background: #fb8c00; color: white; }
-        .ab-orange:hover { background: #e65100; }
-        .ab-teal { background: #26a69a; color: white; }
-        .ab-teal:hover { background: #00695c; }
-        .ab-purple { background: #7b1fa2; color: white; }
-        .ab-purple:hover { background: #4a0072; }
-        .ab-slate { background: #607d8b; color: white; }
-        .ab-slate:hover { background: #455a64; }
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 5px; }
-        .stat-card { background: var(--bg-sidebar); border-radius: 10px; padding: 12px; text-align: center; }
-        .stat-num { font-size: 22px; font-weight: bold; color: #2ca5e0; }
-        .stat-lbl { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
-        .broadcast-box textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; resize: none; min-height: 80px; background: var(--bg-sidebar); color: var(--text-main); outline: none; font-size: 14px; margin-bottom: 8px; }
-        .no-chat { display: flex; flex: 1; align-items: center; justify-content: center; color: var(--text-muted); background: var(--bg-sidebar); flex-direction: column; gap: 10px; }
-        .status-online { color: var(--primary); font-size: 13px; }
-        @media (max-width: 768px) {
-            .sidebar { width: 100%; position: absolute; height: 100%; z-index: 100; }
-            .chat-area { width: 100%; }
-            .chat-header .back-btn { display: block; }
-            .sidebar.hidden { transform: translateX(-100%); }
-            .stats-grid { grid-template-columns: 1fr 1fr; }
-        }
-        .av-preset { width: 100%; aspect-ratio: 1; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: 0.15s; display: flex; align-items: center; justify-content: center; font-size: 22px; background-size: cover; background-position: center; }
-        .av-preset:hover { border-color: var(--primary); transform: scale(1.08); }
-        .av-preset.selected { border-color: #2ca5e0; box-shadow: 0 0 0 2px #2ca5e0; }
-        .av-category { font-size: 11px; font-weight: 600; color: var(--text-muted); margin: 8px 0 4px; grid-column: 1/-1; text-transform: uppercase; letter-spacing: 0.5px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Telegram Web Pro</title>
+<style>
+:root{--primary:#3390ec;--primary-hover:#2a7cbd;--bg-main:#fff;--bg-sidebar:#f4f4f5;--text-main:#000;--text-muted:#707579;--border:#e0e0e0;--msg-own:#e3ffe3;--msg-other:#fff;--danger:#e53935;--modal-bg:rgba(0,0,0,.5)}
+[data-theme=dark]{--primary:#8774e1;--primary-hover:#7361c7;--bg-main:#0f0f0f;--bg-sidebar:#212121;--text-main:#fff;--text-muted:#aaa;--border:#333;--msg-own:#766ac8;--msg-other:#212121}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Roboto,sans-serif}
+body{height:100vh;display:flex;background:var(--bg-main);color:var(--text-main);overflow:hidden}
+#loading{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg-sidebar);z-index:9999;gap:14px}
+.spin{width:38px;height:38px;border:4px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+#auth{position:fixed;inset:0;display:none;justify-content:center;align-items:center;background:var(--bg-sidebar);z-index:2000}
+#app{display:none;width:100%;height:100%}
+.abox{background:var(--bg-main);padding:38px;border-radius:15px;box-shadow:0 10px 25px rgba(0,0,0,.1);width:100%;max-width:400px;text-align:center}
+.abox h2{margin-bottom:22px;color:var(--primary)}
+.abox input{width:100%;padding:12px;margin-bottom:13px;border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-main);outline:none;font-size:15px}
+.abox input:focus{border-color:var(--primary)}
+.aerr{color:var(--danger);font-size:13px;margin-bottom:8px;min-height:16px}
+.btn{padding:11px 22px;border:none;border-radius:8px;cursor:pointer;font-weight:600;transition:.2s;background:var(--primary);color:#fff;font-size:14px}
+.btn:hover{background:var(--primary-hover);transform:translateY(-1px)}
+.btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.btn-d{background:var(--danger)}.btn-d:hover{background:#c62828}
+.btn-s{background:#43a047}.btn-s:hover{background:#2e7d32}
+.btn-g{background:#888}.btn-g:hover{background:#666}
+.mc{display:flex;width:100%;height:100%}
+.sidebar{width:340px;border-right:1px solid var(--border);background:var(--bg-sidebar);display:flex;flex-direction:column;flex-shrink:0;transition:transform .3s}
+.shdr{padding:13px;display:flex;justify-content:space-between;align-items:center;background:var(--bg-main);gap:6px}
+.logo{font-weight:700;color:var(--primary);cursor:pointer;user-select:none;font-size:1.15rem;flex-shrink:0}
+.srch{padding:9px;background:var(--bg-main)}
+.srch input{width:100%;padding:9px 14px;border-radius:20px;border:1px solid var(--border);background:var(--bg-sidebar);outline:none;color:var(--text-main);font-size:14px}
+.ulist{flex:1;overflow-y:auto}
+.ui{display:flex;align-items:center;padding:11px 14px;cursor:pointer;transition:.15s;border-bottom:1px solid rgba(0,0,0,.03)}
+.ui:hover{background:rgba(0,0,0,.05)}
+.ui.active{background:var(--primary);color:#fff}
+.ui.active .tm{color:rgba(255,255,255,.8)}
+.ui.ban{opacity:.4;pointer-events:none}
+.av{width:48px;height:48px;border-radius:50%;background:#ccc;margin-right:13px;flex-shrink:0;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:17px}
+.ca{flex:1;display:flex;flex-direction:column;background:var(--bg-main);position:relative}
+.chdr{height:58px;padding:0 14px;display:flex;align-items:center;border-bottom:1px solid var(--border);background:var(--bg-main);z-index:10;gap:8px}
+.back{display:none;font-size:20px;cursor:pointer;flex-shrink:0}
+.msgbox{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:9px;background:url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png') fixed}
+.msg{max-width:70%;padding:9px 14px;border-radius:12px;font-size:15px;animation:fi .2s;box-shadow:0 1px 2px rgba(0,0,0,.1);word-break:break-word}
+@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.msg.own{align-self:flex-end;background:var(--msg-own);border-bottom-right-radius:2px}
+.msg.other{align-self:flex-start;background:var(--msg-other);border-bottom-left-radius:2px}
+.mt{font-size:11px;opacity:.6;margin-top:4px;text-align:right;display:block}
+.mdel{font-style:italic;opacity:.5}
+.medit{font-size:10px;opacity:.5;margin-left:3px}
+.rq{border-left:3px solid var(--primary);padding-left:6px;margin-bottom:5px;font-size:12px;opacity:.7}
+.mimg{max-width:240px;max-height:190px;border-radius:8px;display:block;margin-bottom:4px;cursor:pointer}
+.ia{padding:11px 14px;display:flex;gap:8px;align-items:center;background:var(--bg-main);border-top:1px solid var(--border)}
+.ia input{flex:1;padding:10px 15px;border-radius:25px;border:1px solid var(--border);outline:none;background:var(--bg-sidebar);color:var(--text-main);font-size:14px}
+.rbar{padding:7px 14px;background:var(--bg-sidebar);border-top:1px solid var(--border);display:none;align-items:center;justify-content:space-between;font-size:13px}
+.rbar.on{display:flex}
+.modal{display:none;position:fixed;inset:0;background:var(--modal-bg);z-index:3000;align-items:flex-start;justify-content:center;padding:18px;overflow-y:auto}
+.mc2{background:var(--bg-main);padding:26px;border-radius:15px;width:100%;max-width:420px;position:relative;margin:auto}
+.mc2.wide{max-width:570px}
+.cls{position:absolute;top:13px;right:17px;font-size:24px;cursor:pointer;line-height:1}
+.vf{color:var(--primary);margin-left:4px;font-size:14px}
+.ui.active .vf{color:#fff}
+.vb{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;background:#2ca5e0;border-radius:50%;margin-left:4px;font-size:10px;color:#fff;font-weight:700;vertical-align:middle;position:relative;top:-1px}
+.ui.active .vb{background:rgba(255,255,255,.9);color:#2ca5e0}
+.bl{font-size:11px;color:var(--danger);font-weight:700}
+.ml{font-size:11px;color:orange;font-weight:700}
+.ub{background:var(--primary);color:#fff;border-radius:50%;width:19px;height:19px;font-size:11px;display:flex;align-items:center;justify-content:center;margin-left:auto;flex-shrink:0}
+.ui.active .ub{background:#fff;color:var(--primary)}
+.mp{font-size:12px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:190px}
+.ctx{position:fixed;background:var(--bg-main);border:1px solid var(--border);border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.15);z-index:5000;min-width:152px;overflow:hidden}
+.cxi{padding:9px 14px;cursor:pointer;font-size:14px;transition:.15s}
+.cxi:hover{background:var(--bg-sidebar)}
+.cxi.d{color:var(--danger)}
+.nc{display:flex;flex:1;align-items:center;justify-content:center;color:var(--text-muted);background:var(--bg-sidebar);flex-direction:column;gap:10px}
+.so{color:var(--primary);font-size:13px}
+/* Settings */
+.stabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:13px;overflow-x:auto}
+.stab{padding:7px 11px;cursor:pointer;font-size:13px;border-bottom:2px solid transparent;color:var(--text-muted);transition:.2s;white-space:nowrap}
+.stab.on{border-bottom-color:var(--primary);color:var(--primary);font-weight:600}
+.sc{display:none}.sc.on{display:block}
+.sr{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px}
+.sr:last-child{border-bottom:none}
+.sl{color:var(--text-muted);font-size:12px;margin-bottom:3px;margin-top:7px}
+.si{width:100%;padding:9px;border:1px solid var(--border);border-radius:7px;background:var(--bg-sidebar);color:var(--text-main);outline:none;font-size:14px;margin-bottom:8px}
+.si:focus{border-color:var(--primary)}
+.bav{width:72px;height:72px;border-radius:50%;margin:0 auto 6px;display:flex;align-items:center;justify-content:center;font-size:27px;font-weight:700;color:#fff;background-size:cover;cursor:pointer}
+.tgl{position:relative;display:inline-block;width:40px;height:22px}
+.tgl input{opacity:0;width:0;height:0}
+.tsl{position:absolute;cursor:pointer;inset:0;background:#ccc;border-radius:22px;transition:.3s}
+.tsl:before{content:"";position:absolute;width:16px;height:16px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}
+input:checked+.tsl{background:var(--primary)}
+input:checked+.tsl:before{transform:translateX(18px)}
+/* Avatar picker */
+.avp{width:100%;aspect-ratio:1;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:.15s;display:flex;align-items:center;justify-content:center;font-size:22px;background-size:cover}
+.avp:hover{border-color:var(--primary);transform:scale(1.08)}
+.avp.sel{border-color:#2ca5e0;box-shadow:0 0 0 2px #2ca5e0}
+.avc{font-size:10px;font-weight:600;color:var(--text-muted);margin:5px 0 2px;grid-column:1/-1;text-transform:uppercase;letter-spacing:.5px}
+/* Admin */
+.vhdr{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.vhdr h3{color:#2ca5e0;font-size:17px}
+.atbs{display:flex;gap:4px;margin-bottom:13px;flex-wrap:wrap}
+.atb{padding:5px 10px;border:1px solid var(--border);border-radius:18px;cursor:pointer;font-size:12px;background:var(--bg-sidebar);color:var(--text-main);transition:.2s}
+.atb.on{background:#2ca5e0;color:#fff;border-color:#2ca5e0}
+.atp{display:none}.atp.on{display:block}
+.aul{max-height:310px;overflow-y:auto;border:1px solid var(--border);border-radius:8px}
+.aur{display:flex;align-items:center;padding:8px 9px;border-bottom:1px solid var(--border);gap:5px}
+.aur:last-child{border-bottom:none}
+.aui{flex:1;min-width:0}
+.aui .un{font-weight:600;font-size:13px}
+.aui .ul{font-size:11px;color:var(--text-muted)}
+.aui .up{font-size:11px;color:#e53935;font-family:monospace;background:rgba(229,57,53,.1);padding:1px 5px;border-radius:4px;display:inline-block;margin-top:1px}
+.aa{display:flex;gap:3px;flex-wrap:wrap;justify-content:flex-end}
+.aa button{padding:3px 6px;font-size:11px;border:none;border-radius:5px;cursor:pointer;font-weight:600;transition:.2s;white-space:nowrap}
+.b1{background:#2ca5e0;color:#fff}.b1:hover{background:#1a90c7}
+.b2{background:#888;color:#fff}.b2:hover{background:#555}
+.b3{background:var(--danger);color:#fff}.b3:hover{background:#c62828}
+.b4{background:#43a047;color:#fff}.b4:hover{background:#2e7d32}
+.b5{background:#fb8c00;color:#fff}.b5:hover{background:#e65100}
+.b6{background:#26a69a;color:#fff}.b6:hover{background:#00695c}
+.b7{background:#7b1fa2;color:#fff}.b7:hover{background:#4a0072}
+.b8{background:#607d8b;color:#fff}.b8:hover{background:#455a64}
+.sg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}
+.sc2{background:var(--bg-sidebar);border-radius:9px;padding:11px;text-align:center}
+.sn{font-size:20px;font-weight:700;color:#2ca5e0}
+.slb{font-size:11px;color:var(--text-muted);margin-top:1px}
+textarea.bc{width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;resize:none;min-height:75px;background:var(--bg-sidebar);color:var(--text-main);outline:none;font-size:14px;margin-bottom:7px}
+@media(max-width:768px){
+.sidebar{width:100%;position:absolute;height:100%;z-index:100}
+.ca{width:100%}.back{display:block}
+.sidebar.hide{transform:translateX(-100%)}
+.sg{grid-template-columns:1fr 1fr}}
+</style>
 </head>
 <body>
 
-<div id="auth-screen">
-    <div class="auth-box" id="auth-login">
-        <h2>Увійти в акаунт</h2>
-        <input type="text" id="login-username" placeholder="Логін">
-        <input type="password" id="login-pass" placeholder="Пароль">
-        <button class="btn" style="width:100%" onclick="app.login()">Увійти</button>
-        <p style="margin-top:15px;font-size:14px;">Немає акаунту? <a href="#" onclick="app.showReg(true)" style="color:var(--primary)">Реєстрація</a></p>
-    </div>
-    <div class="auth-box" id="auth-reg" style="display:none;">
-        <h2>Реєстрація</h2>
-        <input type="text" id="reg-username" placeholder="Придумайте логін">
-        <input type="text" id="reg-nick" placeholder="Нікнейм (необов'язково)">
-        <input type="password" id="reg-pass" placeholder="Пароль (мін. 4 символи)">
-        <input type="password" id="reg-pass-confirm" placeholder="Підтвердіть пароль">
-        <button class="btn" style="width:100%" onclick="app.register()">Створити акаунт</button>
-        <p style="margin-top:15px;font-size:14px;">Вже є акаунт? <a href="#" onclick="app.showReg(false)" style="color:var(--primary)">Увійти</a></p>
-    </div>
+<div id="loading"><div class="spin"></div><div style="color:var(--text-muted);font-size:13px">Підключення...</div></div>
+
+<div id="auth">
+  <div class="abox" id="ab-login">
+    <h2>Увійти</h2>
+    <div class="aerr" id="lerr"></div>
+    <input id="lu" placeholder="Логін" autocomplete="username">
+    <input id="lp" type="password" placeholder="Пароль" autocomplete="current-password" onkeypress="if(event.key==='Enter')A.login()">
+    <button class="btn" style="width:100%" id="lbtn" onclick="A.login()">Увійти</button>
+    <p style="margin-top:13px;font-size:14px">Немає акаунту? <a href="#" onclick="A.showReg(true)" style="color:var(--primary)">Реєстрація</a></p>
+  </div>
+  <div class="abox" id="ab-reg" style="display:none">
+    <h2>Реєстрація</h2>
+    <div class="aerr" id="rerr"></div>
+    <input id="ru" placeholder="Логін (латиниця, цифри)">
+    <input id="rn" placeholder="Нікнейм (необов'язково)">
+    <input id="rp" type="password" placeholder="Пароль (мін. 4)">
+    <input id="rp2" type="password" placeholder="Підтвердіть пароль" onkeypress="if(event.key==='Enter')A.register()">
+    <button class="btn" style="width:100%" id="rbtn" onclick="A.register()">Створити акаунт</button>
+    <p style="margin-top:13px;font-size:14px">Вже є акаунт? <a href="#" onclick="A.showReg(false)" style="color:var(--primary)">Увійти</a></p>
+  </div>
 </div>
 
-<div id="app-screen">
-    <div class="main-container">
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <div class="logo" onclick="app.adminTrigger()">Telegram</div>
-                <div style="display:flex;gap:6px;">
-                    <button class="btn" style="padding:5px 10px;font-size:12px;" onclick="app.openSettings()">Профіль</button>
-                    <button id="vortex-admin-btn" class="btn" style="padding:5px 10px;font-size:12px;background:#2ca5e0;display:none;" onclick="app.openVortexAdmin()">⚡ Адмін</button>
-                </div>
+<div id="app">
+  <div class="mc">
+    <aside class="sidebar" id="sb">
+      <div class="shdr">
+        <div class="logo" onclick="A.logoClick()">Telegram</div>
+        <button id="vbtn" class="btn" style="padding:5px 9px;font-size:12px;background:#2ca5e0;display:none" onclick="A.openAdmin()">⚡ Адмін</button>
+        <button class="btn" style="padding:5px 9px;font-size:12px" onclick="A.openSettings()">Профіль</button>
+      </div>
+      <div class="srch"><input id="usearch" placeholder="🔍 Пошук..." oninput="A.renderUsers()"></div>
+      <div class="ulist" id="ulist"><div style="padding:18px;text-align:center;color:var(--text-muted);font-size:13px">Завантаження...</div></div>
+    </aside>
+    <main class="ca">
+      <div id="noc" class="nc"><div style="font-size:44px;opacity:.3">💬</div><span>Виберіть чат</span></div>
+      <div id="chat" style="display:none;flex-direction:column;height:100%">
+        <header class="chdr">
+          <span class="back" onclick="A.closeChat()">←</span>
+          <div class="av" id="hav" style="width:38px;height:38px;margin-right:8px;cursor:pointer;flex-shrink:0" onclick="A.openProfile()"></div>
+          <div style="flex:1;min-width:0;cursor:pointer" onclick="A.openProfile()">
+            <div style="font-weight:700;display:flex;align-items:center;gap:2px">
+              <span id="hname" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+              <span id="hver"></span>
             </div>
-            <div class="search-container">
-                <input type="text" id="user-search" placeholder="Пошук..." oninput="app.renderUsers()">
-            </div>
-            <div class="user-list" id="user-list"></div>
-        </aside>
-
-        <main class="chat-area" id="chat-area">
-            <div id="chat-placeholder" class="no-chat">
-                <div style="font-size:48px;opacity:0.3;">💬</div>
-                <span>Виберіть чат, щоб почати спілкування</span>
-            </div>
-            <div id="chat-content" style="display:none;flex-direction:column;height:100%;">
-                <header class="chat-header">
-                    <span class="back-btn" onclick="app.closeChat()">←</span>
-                    <div class="avatar" id="header-avatar" style="width:40px;height:40px;margin-right:12px;cursor:pointer;" onclick="app.openUserProfile()"></div>
-                    <div style="flex:1;cursor:pointer;" onclick="app.openUserProfile()">
-                        <div style="font-weight:bold;display:flex;align-items:center;">
-                            <span id="header-name"></span>
-                            <span id="header-verified"></span>
-                        </div>
-                        <div id="header-status" class="status-online">онлайн</div>
-                    </div>
-                    <button class="btn btn-gray" style="padding:6px 10px;font-size:13px;" onclick="app.clearChat()" title="Очистити чат">🗑</button>
-                </header>
-                <div id="reply-bar" class="reply-bar">
-                    <div style="color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;"><strong style="color:var(--primary);">Відповідь: </strong><span id="reply-preview-text"></span></div>
-                    <span style="cursor:pointer;font-size:18px;margin-left:10px;" onclick="app.cancelReply()">✕</span>
-                </div>
-                <div class="messages-container" id="msg-box"></div>
-                <div class="input-area">
-                    <button class="btn btn-gray" style="padding:10px 12px;font-size:16px;" onclick="document.getElementById('file-input').click()" title="Фото">📎</button>
-                    <input type="file" id="file-input" accept="image/*" style="display:none;" onchange="app.sendImage(this)">
-                    <input type="text" id="msg-input" placeholder="Напишіть повідомлення..." onkeypress="if(event.key==='Enter')app.send()">
-                    <button class="btn" onclick="app.send()">➤</button>
-                </div>
-            </div>
-        </main>
-    </div>
+            <div id="hstatus" class="so">онлайн</div>
+          </div>
+          <button class="btn btn-g" style="padding:5px 9px;font-size:13px;flex-shrink:0" onclick="A.clearChat()">🗑</button>
+        </header>
+        <div id="rbar" class="rbar">
+          <div style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px"><strong style="color:var(--primary)">Відповідь: </strong><span id="rprev"></span></div>
+          <span style="cursor:pointer;font-size:18px;margin-left:8px" onclick="A.cancelReply()">✕</span>
+        </div>
+        <div class="msgbox" id="msgbox"></div>
+        <div class="ia">
+          <button class="btn btn-g" style="padding:9px 10px;font-size:16px;flex-shrink:0" onclick="document.getElementById('fi').click()">📎</button>
+          <input type="file" id="fi" accept="image/*" style="display:none" onchange="A.sendImg(this)">
+          <input id="mi" placeholder="Напишіть повідомлення..." onkeypress="if(event.key==='Enter')A.send()">
+          <button class="btn" style="flex-shrink:0" onclick="A.send()">➤</button>
+        </div>
+      </div>
+    </main>
+  </div>
 </div>
 
-<div id="ctx-menu" class="ctx-menu" style="display:none;"></div>
+<div id="ctx" class="ctx" style="display:none"></div>
 
-<!-- Профіль користувача -->
-<div class="modal" id="modal-user-profile">
-    <div class="modal-content">
-        <span class="close" onclick="app.closeModals()">&times;</span>
-        <div id="user-profile-content"></div>
+<div class="modal" id="m-prof"><div class="mc2"><span class="cls" onclick="A.closeM()">&times;</span><div id="profcnt"></div></div></div>
+
+<div class="modal" id="m-set">
+  <div class="mc2">
+    <span class="cls" onclick="A.closeM()">&times;</span>
+    <h3 style="margin-bottom:13px">⚙️ Налаштування</h3>
+    <div class="stabs">
+      <div class="stab on" onclick="A.sTab('p')">Профіль</div>
+      <div class="stab" onclick="A.sTab('a')">Акаунт</div>
+      <div class="stab" onclick="A.sTab('l')">Вигляд</div>
+      <div class="stab" onclick="A.sTab('v')">Приватність</div>
     </div>
+    <div class="sc on" id="st-p">
+      <div style="text-align:center;margin-bottom:9px">
+        <div class="bav" id="bav" onclick="A.toggleAvPicker()"></div>
+        <div style="font-size:11px;color:var(--text-muted)">натисни щоб змінити</div>
+        <div style="font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:4px;margin-top:5px" id="snl"></div>
+      </div>
+      <div id="avpicker" style="display:none;margin-bottom:11px;border:1px solid var(--border);border-radius:11px;padding:9px;background:var(--bg-sidebar)">
+        <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:7px">Вибери аватарку</div>
+        <div id="avgrid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:5px;max-height:210px;overflow-y:auto"></div>
+        <div style="margin-top:7px;border-top:1px solid var(--border);padding-top:7px">
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:3px">або URL фото:</div>
+          <div style="display:flex;gap:5px">
+            <input class="si" id="avurl" placeholder="https://..." style="margin-bottom:0;flex:1;font-size:12px;padding:6px 9px">
+            <button class="btn" style="padding:6px 11px;font-size:12px" onclick="A.applyUrl()">ОК</button>
+          </div>
+        </div>
+      </div>
+      <div class="sl">Нікнейм</div><input class="si" id="snick" placeholder="Нікнейм">
+      <div class="sl">Статус / Біо</div><input class="si" id="sbio" placeholder="Про себе...">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">💡 Верифікація — тільки через адмін-панель</div>
+      <button class="btn" style="width:100%" onclick="A.saveProfile()">💾 Зберегти</button>
+    </div>
+    <div class="sc" id="st-a">
+      <div style="background:var(--bg-sidebar);border-radius:8px;padding:9px;margin-bottom:11px;font-size:13px">
+        <div>Логін: <strong id="alogin"></strong></div>
+        <div style="margin-top:3px">Реєстрація: <strong id="areg"></strong></div>
+      </div>
+      <div class="sl">Змінити пароль</div>
+      <input class="si" id="op" type="password" placeholder="Старий пароль">
+      <input class="si" id="np" type="password" placeholder="Новий пароль">
+      <input class="si" id="np2" type="password" placeholder="Підтвердіть новий пароль">
+      <button class="btn" style="width:100%" onclick="A.chPass()">Змінити пароль</button>
+      <hr style="margin:11px 0;border-color:var(--border)">
+      <button class="btn btn-d" style="width:100%" onclick="A.delAcc()">🗑 Видалити акаунт</button>
+      <button class="btn btn-d" style="width:100%;margin-top:7px" onclick="A.logout()">Вийти</button>
+    </div>
+    <div class="sc" id="st-l">
+      <div class="sr"><span>Темна тема</span><label class="tgl"><input type="checkbox" id="ttheme" onchange="A.toggleTheme()"><span class="tsl"></span></label></div>
+      <div class="sr"><span>Звук</span><label class="tgl"><input type="checkbox" id="tsnd" checked><span class="tsl"></span></label></div>
+      <div class="sr"><span>Анімації</span><label class="tgl"><input type="checkbox" id="tanim" checked><span class="tsl"></span></label></div>
+    </div>
+    <div class="sc" id="st-v">
+      <div class="sr"><span>Показувати онлайн</span><label class="tgl"><input type="checkbox" id="tonl" checked><span class="tsl"></span></label></div>
+      <div class="sr"><span>Дозволити писати всім</span><label class="tgl"><input type="checkbox" id="tallm" checked><span class="tsl"></span></label></div>
+      <div style="margin-top:9px"><div class="sl">Заблоковані</div><div id="bllist" style="font-size:13px;color:var(--text-muted);margin-top:4px"></div></div>
+    </div>
+  </div>
 </div>
 
-<!-- Налаштування -->
-<div class="modal" id="modal-settings">
-    <div class="modal-content">
-        <span class="close" onclick="app.closeModals()">&times;</span>
-        <h3 style="margin-bottom:15px;">⚙️ Налаштування</h3>
-        <div class="settings-tabs">
-            <div class="settings-tab active" onclick="app.switchSettingsTab('profile')">Профіль</div>
-            <div class="settings-tab" onclick="app.switchSettingsTab('account')">Акаунт</div>
-            <div class="settings-tab" onclick="app.switchSettingsTab('look')">Вигляд</div>
-            <div class="settings-tab" onclick="app.switchSettingsTab('privacy')">Приватність</div>
-        </div>
-        <!-- Профіль -->
-        <div class="stab-content active" id="stab-profile">
-            <div style="text-align:center;margin-bottom:12px;">
-                <div class="profile-big-av" id="settings-big-av" style="cursor:pointer;" onclick="app.toggleAvatarPicker()" title="Натисни щоб вибрати аватарку"></div>
-                <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">натисни на аватар щоб вибрати</div>
-                <div style="font-size:16px;font-weight:bold;display:flex;align-items:center;justify-content:center;gap:5px;margin-top:6px;" id="settings-name-line"></div>
-            </div>
-            <div id="avatar-picker" style="display:none;margin-bottom:12px;border:1px solid var(--border);border-radius:12px;padding:10px;background:var(--bg-sidebar);">
-                <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px;">Вибери аватарку</div>
-                <div id="avatar-grid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;max-height:230px;overflow-y:auto;"></div>
-                <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">
-                    <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">або встав URL свого фото:</div>
-                    <div style="display:flex;gap:6px;">
-                        <input class="s-input" type="text" id="set-avatar" placeholder="https://..." style="margin-bottom:0;flex:1;font-size:12px;padding:7px 10px;">
-                        <button class="btn" style="padding:7px 12px;font-size:12px;" onclick="app.applyCustomAvatar()">ОК</button>
-                    </div>
-                </div>
-            </div>
-            <div class="s-label">Нікнейм</div>
-            <input class="s-input" type="text" id="set-nick" placeholder="Нікнейм">
-            <div class="s-label">Статус / Біо</div>
-            <input class="s-input" type="text" id="set-bio" placeholder="Про себе...">
-            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;margin-bottom:8px;">Верифікація — тільки через адмін-панель</div>
-            <button class="btn" style="width:100%;" onclick="app.saveProfile()">Зберегти профіль</button>
-        </div>
-        <!-- Акаунт -->
-        <div class="stab-content" id="stab-account">
-            <div style="background:var(--bg-sidebar);border-radius:8px;padding:10px;margin-bottom:12px;font-size:13px;">
-                <div>Логін: <strong id="acc-login"></strong></div>
-                <div style="margin-top:4px;">Дата реєстрації: <strong id="acc-regdate"></strong></div>
-            </div>
-            <div class="s-label">Змінити пароль</div>
-            <input class="s-input" type="password" id="set-old-pass" placeholder="Старий пароль">
-            <input class="s-input" type="password" id="set-new-pass" placeholder="Новий пароль">
-            <input class="s-input" type="password" id="set-new-pass2" placeholder="Підтвердіть новий пароль">
-            <button class="btn" style="width:100%;" onclick="app.changePassword()">Змінити пароль</button>
-            <hr style="margin:15px 0;border-color:var(--border);">
-            <button class="btn btn-danger" style="width:100%;margin-top:5px;" onclick="app.deleteAccount()">🗑 Видалити акаунт</button>
-            <button class="btn btn-danger" style="width:100%;margin-top:8px;" onclick="app.logout()">Вийти з акаунта</button>
-        </div>
-        <!-- Вигляд -->
-        <div class="stab-content" id="stab-look">
-            <div class="s-row"><span>Темна тема</span><label class="toggle"><input type="checkbox" id="set-theme" onchange="app.toggleTheme()"><span class="toggle-sl"></span></label></div>
-            <div class="s-row"><span>Показувати час в повідомленнях</span><label class="toggle"><input type="checkbox" id="set-show-time" checked onchange="app.saveUISetting('showTime',this.checked)"><span class="toggle-sl"></span></label></div>
-            <div class="s-row"><span>Звук повідомлень</span><label class="toggle"><input type="checkbox" id="set-sound" checked onchange="app.saveUISetting('sound',this.checked)"><span class="toggle-sl"></span></label></div>
-            <div class="s-row"><span>Анімації повідомлень</span><label class="toggle"><input type="checkbox" id="set-anim" checked onchange="app.saveUISetting('anim',this.checked)"><span class="toggle-sl"></span></label></div>
-            <div class="s-row"><span>Компактний режим</span><label class="toggle"><input type="checkbox" id="set-compact" onchange="app.saveUISetting('compact',this.checked)"><span class="toggle-sl"></span></label></div>
-        </div>
-        <!-- Приватність -->
-        <div class="stab-content" id="stab-privacy">
-            <div class="s-row"><span>Показувати статус онлайн</span><label class="toggle"><input type="checkbox" id="set-show-online" checked onchange="app.saveUISetting('showOnline',this.checked)"><span class="toggle-sl"></span></label></div>
-            <div class="s-row"><span>Дозволити писати всім</span><label class="toggle"><input type="checkbox" id="set-allow-msg" checked onchange="app.saveUISetting('allowMsg',this.checked)"><span class="toggle-sl"></span></label></div>
-            <div class="s-row"><span>Показувати дату реєстрації</span><label class="toggle"><input type="checkbox" id="set-show-reg" checked onchange="app.saveUISetting('showReg',this.checked)"><span class="toggle-sl"></span></label></div>
-            <div style="margin-top:12px;">
-                <div class="s-label">Заблоковані</div>
-                <div id="blocked-list" style="font-size:13px;color:var(--text-muted);margin-top:5px;"></div>
-            </div>
-        </div>
+<div class="modal" id="m-adm">
+  <div class="mc2 wide">
+    <span class="cls" onclick="A.closeM()">&times;</span>
+    <div class="vhdr">
+      <svg width="28" height="28" viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#2ca5e0"/><path d="M10 16.5L14.5 21L22 12" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <h3>Vortex Admin Panel</h3>
     </div>
+    <div class="atbs">
+      <div class="atb on" onclick="A.aTab('u')">👥 Користувачі</div>
+      <div class="atb" onclick="A.aTab('s')">📊 Статистика</div>
+      <div class="atb" onclick="A.aTab('m')">💬 Повідомлення</div>
+      <div class="atb" onclick="A.aTab('b')">📢 Розсилка</div>
+      <div class="atb" onclick="A.aTab('l')">📋 Логи</div>
+    </div>
+    <div class="atp on" id="at-u">
+      <input id="asrch" placeholder="🔍 Пошук..." style="width:100%;padding:7px 11px;border:1px solid var(--border);border-radius:7px;margin-bottom:7px;background:var(--bg-sidebar);color:var(--text-main);outline:none;font-size:13px" oninput="A.renderAdmUsers()">
+      <div class="aul" id="aulist"></div>
+    </div>
+    <div class="atp" id="at-s"><div class="sg" id="astats"></div></div>
+    <div class="atp" id="at-m">
+      <div id="amsgs" style="max-height:290px;overflow-y:auto;border:1px solid var(--border);border-radius:8px"></div>
+      <button class="btn btn-d" style="width:100%;margin-top:7px;padding:7px" onclick="A.admClearAll()">🗑 Видалити всі повідомлення</button>
+    </div>
+    <div class="atp" id="at-b">
+      <textarea class="bc" id="btxt" placeholder="Текст розсилки..."></textarea>
+      <select id="btgt" style="width:100%;padding:7px;border:1px solid var(--border);border-radius:7px;background:var(--bg-sidebar);color:var(--text-main);margin-bottom:7px;outline:none;font-size:13px">
+        <option value="all">Всі</option><option value="ver">Тільки верифіковані</option><option value="one">Конкретний</option>
+      </select>
+      <input id="bone" placeholder="Логін" style="width:100%;padding:7px;border:1px solid var(--border);border-radius:7px;background:var(--bg-sidebar);color:var(--text-main);margin-bottom:7px;outline:none;font-size:13px;display:none">
+      <button class="btn btn-s" style="width:100%" onclick="A.broadcast()">📢 Надіслати</button>
+    </div>
+    <div class="atp" id="at-l">
+      <div id="alogs" style="max-height:290px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;font-size:11px;font-family:monospace"></div>
+      <button class="btn btn-g" style="width:100%;margin-top:7px;padding:6px;font-size:13px" onclick="A.clearLogs()">Очистити логи</button>
+    </div>
+  </div>
 </div>
 
-<!-- Стара admin панель -->
-<div class="modal" id="modal-admin">
-    <div class="modal-content">
-        <span class="close" onclick="app.closeModals()">&times;</span>
-        <h3 style="color:var(--danger)">Адмін Панель</h3>
-        <div style="margin:20px 0;">
-            <input type="text" id="admin-user" placeholder="Логін користувача" style="width:100%;padding:10px;margin-bottom:10px;border:1px solid var(--border);border-radius:5px;background:var(--bg-sidebar);color:var(--text-main);">
-            <div style="display:flex;gap:10px;">
-                <button class="btn" style="flex:1" onclick="app.setVerify(true)">Дати ✔</button>
-                <button class="btn btn-danger" style="flex:1" onclick="app.setVerify(false)">Забрати</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- VORTEX АДМІН ПАНЕЛЬ -->
-<div class="modal" id="modal-vortex-admin">
-    <div class="modal-content wide">
-        <span class="close" onclick="app.closeModals()">&times;</span>
-        <div class="vortex-hdr">
-            <svg width="30" height="30" viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#2ca5e0"/><path d="M10 16.5L14.5 21L22 12" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <h3>Vortex Admin Panel</h3>
-        </div>
-        <div class="admin-tabs">
-            <div class="admin-tab active" onclick="app.switchAdminTab('users')">👥 Користувачі</div>
-            <div class="admin-tab" onclick="app.switchAdminTab('stats')">📊 Статистика</div>
-            <div class="admin-tab" onclick="app.switchAdminTab('messages')">💬 Повідомлення</div>
-            <div class="admin-tab" onclick="app.switchAdminTab('broadcast')">📢 Розсилка</div>
-            <div class="admin-tab" onclick="app.switchAdminTab('logs')">📋 Логи</div>
-        </div>
-        <!-- Users -->
-        <div class="atab-content active" id="atab-users">
-            <input type="text" id="admin-search" placeholder="🔍 Пошук..." style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;background:var(--bg-sidebar);color:var(--text-main);outline:none;font-size:13px;" oninput="app.renderVortexUserList()">
-            <div class="adm-ulist" id="vortex-user-list"></div>
-        </div>
-        <!-- Stats -->
-        <div class="atab-content" id="atab-stats">
-            <div class="stats-grid" id="admin-stats-grid"></div>
-        </div>
-        <!-- Messages -->
-        <div class="atab-content" id="atab-messages">
-            <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Всі повідомлення системи:</div>
-            <div id="admin-all-messages" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;"></div>
-            <button class="btn btn-danger" style="width:100%;margin-top:8px;padding:8px;" onclick="app.adminClearAllMessages()">🗑 Видалити всі повідомлення</button>
-        </div>
-        <!-- Broadcast -->
-        <div class="atab-content" id="atab-broadcast">
-            <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Надіслати від vortex всім користувачам:</div>
-            <div class="broadcast-box">
-                <textarea id="broadcast-text" placeholder="Текст розсилки..."></textarea>
-                <select id="broadcast-target" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:7px;background:var(--bg-sidebar);color:var(--text-main);margin-bottom:8px;outline:none;font-size:13px;">
-                    <option value="all">Всі користувачі</option>
-                    <option value="verified">Тільки верифіковані</option>
-                    <option value="single">Конкретний користувач</option>
-                </select>
-                <input type="text" id="broadcast-single" placeholder="Логін (якщо вибрано конкретний)" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:7px;background:var(--bg-sidebar);color:var(--text-main);margin-bottom:8px;outline:none;font-size:13px;display:none;" oninput="">
-                <button class="btn btn-success" style="width:100%;" onclick="app.sendBroadcast()">📢 Надіслати</button>
-            </div>
-        </div>
-        <!-- Logs -->
-        <div class="atab-content" id="atab-logs">
-            <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Журнал дій:</div>
-            <div id="admin-logs" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;font-size:11px;font-family:monospace;"></div>
-            <button class="btn btn-gray" style="width:100%;margin-top:8px;padding:7px;font-size:13px;" onclick="app.clearLogs()">Очистити логи</button>
-        </div>
-    </div>
-</div>
-
-<script>
-const app = {
-    currentUser: null,
-    activeChat: null,
-    clickCount: 0,
-    replyTo: null,
-
-    init() {
-        this.loadSession();
-        if (this.currentUser) this.start();
-        setInterval(() => { if(this.clickCount > 0) this.clickCount = 0; }, 3000);
-        setInterval(() => { if(this.activeChat) this.renderMessages(); }, 4000);
-        // Хоткей: Ctrl+Shift+Alt+A
-        document.addEventListener('keydown', (e) => {
-            if (e.ctrlKey && e.shiftKey && e.altKey && e.code === 'KeyA') {
-                e.preventDefault();
-                e.stopPropagation();
-                if (this.currentUser && this.currentUser.username === 'vortex') this.openVortexAdmin();
-            }
-            if (e.key === 'Escape') { this.closeModals(); this.hideCtx(); }
-        });
-        document.addEventListener('click', (e) => { if (!e.target.closest('#ctx-menu')) this.hideCtx(); });
-        document.getElementById('broadcast-target').addEventListener('change', function() {
-            document.getElementById('broadcast-single').style.display = this.value === 'single' ? 'block' : 'none';
-        });
-    },
-
-    D(k) { try { return JSON.parse(localStorage.getItem(k)) || (k === 'users' ? {} : []); } catch(e) { return k === 'users' ? {} : []; } },
-    S(k, v) { localStorage.setItem(k, JSON.stringify(v)); },
-
-    log(msg) {
-        const logs = this.D('alogs');
-        logs.unshift({ t: new Date().toLocaleString(), m: msg });
-        if (logs.length > 300) logs.pop();
-        this.S('alogs', logs);
-    },
-
-    showReg(v) {
-        document.getElementById('auth-login').style.display = v ? 'none' : 'block';
-        document.getElementById('auth-reg').style.display = v ? 'block' : 'none';
-    },
-
-    register() {
-        const u = document.getElementById('reg-username').value.trim().toLowerCase();
-        const nick = document.getElementById('reg-nick').value.trim();
-        const p = document.getElementById('reg-pass').value;
-        const pc = document.getElementById('reg-pass-confirm').value;
-        const users = this.D('users');
-        if (!u || p.length < 4) return alert("Логін і пароль (мін. 4 символи) обов'язкові");
-        if (p !== pc) return alert("Паролі не збігаються");
-        if (users[u]) return alert("Користувач вже існує");
-        users[u] = { username: u, pass: p, nick: nick || u, avatar: '', verified: u === 'admin', verifiedBlue: false, banned: false, muted: false, bio: '', regDate: new Date().toLocaleDateString(), settings: {} };
-        this.S('users', users);
-        this.log(`Реєстрація: @${u}`);
-        alert("Успіх! Увійдіть.");
-        this.showReg(false);
-    },
-
-    login() {
-        const u = document.getElementById('login-username').value.trim().toLowerCase();
-        const p = document.getElementById('login-pass').value;
-        const users = this.D('users');
-        if (users[u] && users[u].pass === p) {
-            if (users[u].banned) return alert("Ваш акаунт заблоковано.");
-            this.currentUser = users[u];
-            localStorage.setItem('tg_session', u);
-            this.log(`Вхід: @${u}`);
-            this.start();
-        } else alert("Невірний логін або пароль");
-    },
-
-    loadSession() {
-        const s = localStorage.getItem('tg_session');
-        if (s) { const users = this.D('users'); if (users[s] && !users[s].banned) this.currentUser = users[s]; else localStorage.removeItem('tg_session'); }
-    },
-
-    start() {
-        document.getElementById('auth-screen').style.display = 'none';
-        document.getElementById('app-screen').style.display = 'block';
-        if (localStorage.getItem('theme') === 'dark') document.documentElement.setAttribute('data-theme','dark');
-        if (this.currentUser.username === 'vortex') {
-            document.getElementById('vortex-admin-btn').style.display = 'inline-block';
-        }
-        this.renderUsers();
-    },
-
-    getAvatarStyle(avatar, nick) {
-        if (!avatar) return `background-color:${this.strColor(nick)};`;
-        if (avatar.startsWith('gradient::')) return `background:${avatar.replace('gradient::','')};`;
-        if (avatar.startsWith('emoji::')) return `background:var(--bg-sidebar);`;
-        return `background-image:url(${avatar});background-color:transparent;background-size:cover;background-position:center;`;
-    },
-
-    getAvatarInit(avatar, nick) {
-        if (!avatar) return (nick||'?')[0].toUpperCase();
-        if (avatar.startsWith('gradient::')) return (nick||'?')[0].toUpperCase();
-        if (avatar.startsWith('emoji::')) return avatar.replace('emoji::','');
-        return '';
-    },
-
-    applyAvatarToEl(el, avatar, nick) {
-        el.style.backgroundSize = 'cover';
-        el.style.backgroundPosition = 'center';
-        if (!avatar) {
-            el.style.backgroundImage = 'none';
-            el.style.background = this.strColor(nick);
-            el.innerText = (nick||'?')[0].toUpperCase();
-            el.style.fontSize = '';
-        } else if (avatar.startsWith('gradient::')) {
-            el.style.backgroundImage = 'none';
-            el.style.background = avatar.replace('gradient::', '');
-            el.innerText = (nick||'?')[0].toUpperCase();
-            el.style.fontSize = '18px';
-            el.style.color = 'white';
-        } else if (avatar.startsWith('emoji::')) {
-            el.style.backgroundImage = 'none';
-            el.style.background = 'var(--bg-sidebar)';
-            el.innerText = avatar.replace('emoji::', '');
-            el.style.fontSize = '28px';
-        } else {
-            el.style.backgroundImage = `url(${avatar})`;
-            el.style.backgroundColor = 'transparent';
-            el.innerText = '';
-            el.style.fontSize = '';
-        }
-    },
-
-    strColor(s) {
-        const c = ['#e53935','#8e24aa','#1e88e5','#00897b','#43a047','#fb8c00','#6d4c41','#546e7a'];
-        let h = 0; for(let i=0;i<(s||'').length;i++) h = s.charCodeAt(i)+((h<<5)-h);
-        return c[Math.abs(h)%c.length];
-    },
-
-    verifiedHtml(user, small) {
-        const sz = small ? 'width:13px;height:13px;font-size:8px;' : '';
-        if (user.verifiedBlue) return `<span class="verified-blue" style="${sz}">✔</span>`;
-        if (user.verified) return `<span class="verified" ${small?'style="font-size:11px;"':''}>✔</span>`;
-        return '';
-    },
-
-    renderUsers() {
-        const list = document.getElementById('user-list');
-        const search = document.getElementById('user-search').value.toLowerCase();
-        const users = this.D('users');
-        const messages = this.D('messages');
-        list.innerHTML = '';
-        Object.values(users).forEach(user => {
-            if (user.username === this.currentUser.username) return;
-            if (!user.username.includes(search) && !(user.nick||'').toLowerCase().includes(search)) return;
-            const div = document.createElement('div');
-            div.className = `user-item ${this.activeChat === user.username ? 'active' : ''} ${user.banned ? 'banned-user' : ''}`;
-            div.onclick = () => this.selectChat(user.username);
-            const avStyle = this.getAvatarStyle(user.avatar, user.nick);
-            const init = this.getAvatarInit(user.avatar, user.nick);
-            const bannedHtml = user.banned ? `<span class="banned-label"> [БАН]</span>` : '';
-            const mutedHtml = user.muted ? `<span class="muted-label"> [МУТ]</span>` : '';
-            const unread = messages.filter(m => m.from===user.username && m.to===this.currentUser.username && !m.read).length;
-            const lastMsg = messages.filter(m => (m.from===user.username&&m.to===this.currentUser.username)||(m.from===this.currentUser.username&&m.to===user.username)).slice(-1)[0];
-            const avFontSize = (user.avatar||'').startsWith('emoji::') ? 'font-size:22px;' : '';
-            div.innerHTML = `
-                <div class="avatar" style="${avStyle}${avFontSize}">${init}</div>
-                <div style="flex:1;min-width:0;">
-                    <div style="display:flex;align-items:center;justify-content:space-between;">
-                        <span style="font-weight:600;">${user.nick||user.username}${this.verifiedHtml(user)}${bannedHtml}${mutedHtml}</span>
-                        ${unread>0?`<span class="unread-badge">${unread}</span>`:''}
-                    </div>
-                    <div class="msg-preview">${lastMsg?(lastMsg.deleted?'🗑 Видалено':(lastMsg.image?'🖼 Фото':lastMsg.text)):'@'+user.username}</div>
-                </div>`;
-            list.appendChild(div);
-        });
-    },
-
-    selectChat(username) {
-        this.activeChat = username;
-        this.replyTo = null;
-        document.getElementById('reply-bar').classList.remove('visible');
-        const users = this.D('users');
-        const t = users[username];
-        document.getElementById('chat-placeholder').style.display = 'none';
-        document.getElementById('chat-content').style.display = 'flex';
-        document.getElementById('sidebar').classList.add('hidden');
-        document.getElementById('header-name').innerText = t.nick||t.username;
-        document.getElementById('header-verified').innerHTML = this.verifiedHtml(t);
-        document.getElementById('header-status').innerHTML = t.bio ? `<span style="color:var(--text-muted);font-size:12px;">${t.bio}</span>` : '<span style="color:var(--primary);">онлайн</span>';
-        const hAv = document.getElementById('header-avatar');
-        this.applyAvatarToEl(hAv, t.avatar, t.nick);
-        const messages = this.D('messages');
-        let changed = false;
-        messages.forEach(m => { if(m.from===username && m.to===this.currentUser.username && !m.read) { m.read=true; changed=true; } });
-        if(changed) this.S('messages', messages);
-        this.renderMessages();
-        this.renderUsers();
-    },
-
-    closeChat() { document.getElementById('sidebar').classList.remove('hidden'); },
-
-    renderMessages() {
-        if (!this.activeChat) return;
-        const box = document.getElementById('msg-box');
-        const messages = this.D('messages');
-        const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 100;
-        box.innerHTML = '';
-        messages.forEach((m, idx) => {
-            if (!((m.from===this.currentUser.username&&m.to===this.activeChat)||(m.from===this.activeChat&&m.to===this.currentUser.username))) return;
-            const isOwn = m.from === this.currentUser.username;
-            const div = document.createElement('div');
-            div.className = `msg ${isOwn?'own':'other'}`;
-            let content = '';
-            if (m.deleted) {
-                content = `<span class="msg-deleted">🗑 Повідомлення видалено</span>`;
-            } else {
-                if (m.replyTo != null && messages[m.replyTo]) {
-                    const orig = messages[m.replyTo];
-                    content += `<div class="reply-quote">${orig.deleted?'🗑 Видалено':(orig.image?'🖼 Фото':orig.text)}</div>`;
-                }
-                if (m.image) content += `<img src="${m.image}" class="msg-img" onclick="app.openImg('${m.image}')">`;
-                if (m.text) content += `${m.text}${m.edited?'<span class="msg-edited">(ред.)</span>':''}`;
-            }
-            content += `<span class="msg-time">${m.time}${isOwn?(m.read?' ✓✓':' ✓'):''}</span>`;
-            div.innerHTML = content;
-            if (!m.deleted) div.addEventListener('contextmenu', e => { e.preventDefault(); this.showCtx(e, idx, isOwn); });
-            box.appendChild(div);
-        });
-        if (atBottom) box.scrollTop = box.scrollHeight;
-    },
-
-    showCtx(e, idx, isOwn) {
-        const menu = document.getElementById('ctx-menu');
-        let html = `<div class="ctx-item" onclick="app.replyMsg(${idx})">↩ Відповісти</div>`;
-        if (isOwn) {
-            html += `<div class="ctx-item" onclick="app.editMsg(${idx})">✏️ Редагувати</div>`;
-            html += `<div class="ctx-item danger" onclick="app.deleteMsg(${idx},false)">🗑 Видалити у мене</div>`;
-            html += `<div class="ctx-item danger" onclick="app.deleteMsg(${idx},true)">🗑 Видалити для всіх</div>`;
-        }
-        html += `<div class="ctx-item" onclick="app.copyMsg(${idx})">📋 Копіювати</div>`;
-        menu.innerHTML = html;
-        menu.style.display = 'block';
-        menu.style.left = Math.min(e.clientX, window.innerWidth-170)+'px';
-        menu.style.top = Math.min(e.clientY, window.innerHeight-160)+'px';
-    },
-    hideCtx() { document.getElementById('ctx-menu').style.display = 'none'; },
-
-    replyMsg(idx) {
-        this.replyTo = idx;
-        const m = this.D('messages')[idx];
-        document.getElementById('reply-preview-text').innerText = m.image ? '🖼 Фото' : m.text;
-        document.getElementById('reply-bar').classList.add('visible');
-        document.getElementById('msg-input').focus();
-        this.hideCtx();
-    },
-    cancelReply() { this.replyTo = null; document.getElementById('reply-bar').classList.remove('visible'); },
-
-    editMsg(idx) {
-        const messages = this.D('messages');
-        const t = prompt("Редагувати:", messages[idx].text);
-        if (t !== null && t.trim()) { messages[idx].text = t.trim(); messages[idx].edited = true; this.S('messages', messages); this.renderMessages(); }
-        this.hideCtx();
-    },
-
-    deleteMsg(idx, forAll) {
-        if (!confirm("Видалити повідомлення?")) return;
-        const messages = this.D('messages');
-        if (forAll) messages[idx].deleted = true;
-        else messages.splice(idx, 1);
-        this.S('messages', messages);
-        this.renderMessages();
-        this.hideCtx();
-    },
-
-    copyMsg(idx) {
-        const m = this.D('messages')[idx];
-        navigator.clipboard.writeText(m.text||'').catch(()=>{});
-        this.hideCtx();
-    },
-
-    send() {
-        const input = document.getElementById('msg-input');
-        const text = input.value.trim();
-        if (!text || !this.activeChat) return;
-        const users = this.D('users');
-        if (users[this.currentUser.username]?.muted) return alert("Ви замучені. Не можна надсилати повідомлення.");
-        const messages = this.D('messages');
-        const msg = { from: this.currentUser.username, to: this.activeChat, text, time: new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}), read: false };
-        if (this.replyTo !== null) { msg.replyTo = this.replyTo; this.cancelReply(); }
-        messages.push(msg);
-        this.S('messages', messages);
-        input.value = '';
-        this.renderMessages();
-        this.renderUsers();
-    },
-
-    sendImage(input) {
-        if (!input.files[0]) return;
-        const reader = new FileReader();
-        reader.onload = e => {
-            const messages = this.D('messages');
-            const msg = { from: this.currentUser.username, to: this.activeChat, image: e.target.result, text: '', time: new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}), read: false };
-            if (this.replyTo !== null) { msg.replyTo = this.replyTo; this.cancelReply(); }
-            messages.push(msg);
-            this.S('messages', messages);
-            this.renderMessages();
-            this.renderUsers();
-        };
-        reader.readAsDataURL(input.files[0]);
-        input.value = '';
-    },
-
-    openImg(src) {
-        const w = window.open('','_blank');
-        w.document.write(`<html><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;height:100vh;"><img src="${src}" style="max-width:100%;max-height:100%;"></body></html>`);
-    },
-
-    clearChat() {
-        if (!confirm("Очистити переписку?")) return;
-        const messages = this.D('messages');
-        this.S('messages', messages.filter(m => !((m.from===this.currentUser.username&&m.to===this.activeChat)||(m.from===this.activeChat&&m.to===this.currentUser.username))));
-        this.renderMessages();
-        this.renderUsers();
-    },
-
-    // Settings
-    openSettings() {
-        const u = this.currentUser;
-        this._selectedAvatar = u.avatar || null;
-        document.getElementById('set-nick').value = u.nick || '';
-        document.getElementById('set-avatar').value = '';
-        document.getElementById('set-bio').value = u.bio || '';
-        document.getElementById('acc-login').innerText = u.username;
-        document.getElementById('acc-regdate').innerText = u.regDate || '—';
-        document.getElementById('avatar-picker').style.display = 'none';
-        const av = document.getElementById('settings-big-av');
-        this.applyAvatarToEl(av, u.avatar, u.nick);
-        document.getElementById('settings-name-line').innerHTML = (u.nick||u.username) + this.verifiedHtml(u);
-        if (localStorage.getItem('theme')==='dark') document.getElementById('set-theme').checked = true;
-        const cfg = u.settings || {};
-        ['show-time','sound','anim','show-online','allow-msg','show-reg'].forEach(id => {
-            const el = document.getElementById('set-'+id);
-            if (el) el.checked = cfg[id.replace('-','')] !== false;
-        });
-        const blocked = u.blocked || [];
-        document.getElementById('blocked-list').innerHTML = blocked.length
-            ? blocked.map(b=>`<span style="display:inline-flex;align-items:center;gap:4px;background:var(--bg-sidebar);padding:3px 8px;border-radius:5px;margin:2px;font-size:12px;">@${b} <span style="cursor:pointer;color:var(--danger);" onclick="app.unblockUser('${b}')">✕</span></span>`).join('')
-            : '<span style="font-size:12px;">Немає заблокованих</span>';
-        this.switchSettingsTab('profile');
-        document.getElementById('modal-settings').style.display = 'flex';
-    },
-
-    switchSettingsTab(name) {
-        const tabs = ['profile','account','look','privacy'];
-        document.querySelectorAll('.settings-tab').forEach((t,i) => t.classList.toggle('active', tabs[i]===name));
-        document.querySelectorAll('.stab-content').forEach(c => c.classList.remove('active'));
-        document.getElementById('stab-'+name).classList.add('active');
-    },
-
-    saveProfile() {
-        const users = this.D('users');
-        const u = users[this.currentUser.username];
-        u.nick = document.getElementById('set-nick').value.trim() || u.username;
-        u.avatar = this._selectedAvatar || '';
-        u.bio = document.getElementById('set-bio').value.trim();
-        this.S('users', users);
-        this.currentUser = u;
-        this.closeModals();
-        this.renderUsers();
-        if(this.activeChat) this.selectChat(this.activeChat);
-        this.log(`@${u.username} оновив профіль`);
-    },
-
-    saveUISetting(key, val) {
-        const users = this.D('users');
-        const u = users[this.currentUser.username];
-        u.settings = u.settings || {};
-        u.settings[key] = val;
-        this.S('users', users);
-        this.currentUser = u;
-    },
-
-    selfVerify() {
-        const users = this.D('users');
-        users[this.currentUser.username].verifiedBlue = true;
-        this.S('users', users);
-        this.currentUser = users[this.currentUser.username];
-        this.log(`@${this.currentUser.username} видав собі верифікацію`);
-        this.openSettings();
-        this.renderUsers();
-        if(this.activeChat) this.selectChat(this.activeChat);
-        alert("✅ Синя галочка видана!");
-    },
-
-    selfUnverify() {
-        const users = this.D('users');
-        users[this.currentUser.username].verifiedBlue = false;
-        users[this.currentUser.username].verified = false;
-        this.S('users', users);
-        this.currentUser = users[this.currentUser.username];
-        this.openSettings();
-        this.renderUsers();
-        if(this.activeChat) this.selectChat(this.activeChat);
-    },
-
-    changePassword() {
-        const old = document.getElementById('set-old-pass').value;
-        const n1 = document.getElementById('set-new-pass').value;
-        const n2 = document.getElementById('set-new-pass2').value;
-        if (old !== this.currentUser.pass) return alert("Старий пароль невірний");
-        if (n1.length < 4) return alert("Новий пароль мінімум 4 символи");
-        if (n1 !== n2) return alert("Паролі не збігаються");
-        const users = this.D('users');
-        users[this.currentUser.username].pass = n1;
-        this.S('users', users);
-        this.currentUser = users[this.currentUser.username];
-        ['set-old-pass','set-new-pass','set-new-pass2'].forEach(id => document.getElementById(id).value='');
-        this.log(`@${this.currentUser.username} змінив пароль`);
-        alert("✅ Пароль змінено!");
-    },
-
-    deleteAccount() {
-        if (!confirm("Видалити акаунт назавжди?")) return;
-        if (!confirm("Точно? Це незворотньо!")) return;
-        const users = this.D('users');
-        this.log(`Акаунт @${this.currentUser.username} видалено`);
-        delete users[this.currentUser.username];
-        this.S('users', users);
-        this.logout();
-    },
-
-    unblockUser(u) {
-        const users = this.D('users');
-        const me = users[this.currentUser.username];
-        me.blocked = (me.blocked||[]).filter(b=>b!==u);
-        this.S('users', users);
-        this.currentUser = me;
-        this.openSettings();
-        this.switchSettingsTab('privacy');
-    },
-
-    toggleTheme() {
-        const d = document.getElementById('set-theme').checked;
-        document.documentElement.setAttribute('data-theme', d?'dark':'light');
-        localStorage.setItem('theme', d?'dark':'light');
-    },
-
-    logout() { localStorage.removeItem('tg_session'); location.reload(); },
-
-    openUserProfile() {
-        if (!this.activeChat) return;
-        const users = this.D('users');
-        const u = users[this.activeChat];
-        if (!u) return;
-        const messages = this.D('messages');
-        const chatMsgs = messages.filter(m=>!m.deleted&&((m.from===u.username&&m.to===this.currentUser.username)||(m.from===this.currentUser.username&&m.to===u.username)));
-        document.getElementById('user-profile-content').innerHTML = `
-            <div style="text-align:center;margin-bottom:18px;">
-                <div id="profile-modal-av" style="width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:bold;color:white;margin:0 auto 10px;"></div>
-                <div style="font-size:19px;font-weight:bold;display:flex;align-items:center;justify-content:center;gap:5px;">${u.nick||u.username}${this.verifiedHtml(u)}</div>
-                <div style="color:var(--text-muted);font-size:13px;margin-top:2px;">@${u.username}</div>
-                ${u.bio?`<div style="margin-top:7px;font-size:13px;">${u.bio}</div>`:''}
-            </div>
-            <div style="background:var(--bg-sidebar);border-radius:10px;padding:12px;font-size:13px;">
-                <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);"><span>Реєстрація</span><span style="color:var(--text-muted)">${u.regDate||'—'}</span></div>
-                <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);"><span>Повідомлень разом</span><span style="color:var(--primary);font-weight:bold;">${chatMsgs.length}</span></div>
-                <div style="display:flex;justify-content:space-between;padding:5px 0;"><span>Статус</span><span style="color:${u.banned?'var(--danger)':u.muted?'orange':'#4caf50'}">${u.banned?'Заблоковано':u.muted?'Замучений':'Активний'}</span></div>
-            </div>`;
-        this.applyAvatarToEl(document.getElementById('profile-modal-av'), u.avatar, u.nick);
-        document.getElementById('modal-user-profile').style.display = 'flex';
-    },
-
-    adminTrigger() {
-        this.clickCount++;
-        if (this.clickCount >= 5) {
-            this.clickCount = 0;
-            if (this.currentUser.username === 'vortex') this.openVortexAdmin();
-            else if (this.currentUser.username === 'admin') document.getElementById('modal-admin').style.display = 'flex';
-            else alert("Тільки адмін!");
-        }
-    },
-
-    setVerify(status) {
-        const t = document.getElementById('admin-user').value.trim();
-        const users = this.D('users');
-        if (users[t]) { users[t].verified = status; this.S('users', users); this.renderUsers(); if(this.activeChat===t) this.selectChat(t); }
-        else alert("Не знайдено");
-    },
-
-    // ===== VORTEX ADMIN =====
-    openVortexAdmin() {
-        this.switchAdminTab('users');
-        document.getElementById('modal-vortex-admin').style.display = 'flex';
-    },
-
-    switchAdminTab(name) {
-        const tabs = ['users','stats','messages','broadcast','logs'];
-        document.querySelectorAll('.admin-tab').forEach((t,i) => t.classList.toggle('active', tabs[i]===name));
-        document.querySelectorAll('.atab-content').forEach(c => c.classList.remove('active'));
-        document.getElementById('atab-'+name).classList.add('active');
-        if (name==='users') this.renderVortexUserList();
-        if (name==='stats') this.renderAdminStats();
-        if (name==='messages') this.renderAdminMessages();
-        if (name==='logs') this.renderAdminLogs();
-    },
-
-    renderVortexUserList() {
-        const users = this.D('users');
-        const search = (document.getElementById('admin-search')?.value||'').toLowerCase();
-        const container = document.getElementById('vortex-user-list');
-        container.innerHTML = '';
-        const list = Object.values(users).filter(u => !search || u.username.includes(search) || (u.nick||'').toLowerCase().includes(search));
-        if (!list.length) { container.innerHTML = '<div style="padding:12px;text-align:center;color:var(--text-muted);font-size:13px;">Немає користувачів</div>'; return; }
-        // vortex завжди перший
-        list.sort((a,b) => a.username==='vortex'?-1:b.username==='vortex'?1:0);
-        list.forEach(user => {
-            const row = document.createElement('div');
-            row.className = 'adm-urow';
-            const isSelf = user.username === 'vortex';
-            const bannedL = user.banned ? ` <span style="color:var(--danger);font-size:10px;">[БАН]</span>` : '';
-            const mutedL = user.muted ? ` <span style="color:orange;font-size:10px;">[МУТ]</span>` : '';
-            const selfLabel = isSelf ? `<span style="font-size:10px;color:#2ca5e0;font-weight:bold;"> [ВИ]</span>` : '';
-            // Верифікація — для всіх включно з собою
-            const verifyBtn = user.verifiedBlue
-                ? `<button class="ab-gray" onclick="app.vSetVerify('${user.username}',false)">Зняти ✔</button>`
-                : `<button class="ab-blue" onclick="app.vSetVerify('${user.username}',true)">Дати ✔</button>`;
-            const banBtn = !isSelf ? (user.banned
-                ? `<button class="ab-green" onclick="app.vSetBan('${user.username}',false)">Розбан</button>`
-                : `<button class="ab-red" onclick="app.vSetBan('${user.username}',true)">Бан</button>`) : '';
-            const muteBtn = !isSelf ? (user.muted
-                ? `<button class="ab-teal" onclick="app.vSetMute('${user.username}',false)">Анмут</button>`
-                : `<button class="ab-orange" onclick="app.vSetMute('${user.username}',true)">Мут</button>`) : '';
-            const delBtn = !isSelf ? `<button class="ab-purple" onclick="app.vDeleteUser('${user.username}')">Видал.</button>` : '';
-            const chatBtn = !isSelf ? `<button class="ab-slate" onclick="app.vClearMsgs('${user.username}')">Чат</button>` : '';
-            const passBtn = !isSelf ? `<button class="ab-gray" onclick="app.vResetPass('${user.username}')">Пароль</button>` : '';
-            row.innerHTML = `
-                <div class="adm-uinfo">
-                    <span class="un">${user.nick||user.username}${this.verifiedHtml(user,true)}${bannedL}${mutedL}${selfLabel}</span>
-                    <span class="ul">@${user.username}</span>
-                    <span class="up">🔑 ${user.pass}</span>
-                </div>
-                <div class="adm-acts">
-                    ${verifyBtn}${banBtn}${muteBtn}${delBtn}${chatBtn}${passBtn}
-                </div>`;
-            container.appendChild(row);
-        });
-    },
-
-    vSetVerify(username, status) {
-        const users = this.D('users');
-        if (!users[username]) return;
-        users[username].verifiedBlue = status;
-        this.S('users', users);
-        this.log(`vortex ${status?'видав':'зняв'} верифікацію @${username}`);
-        this.renderVortexUserList(); this.renderUsers();
-        if (this.activeChat===username) this.selectChat(username);
-    },
-
-    vSetBan(username, status) {
-        const users = this.D('users');
-        if (!users[username]) return;
-        users[username].banned = status;
-        this.S('users', users);
-        this.log(`vortex ${status?'забанив':'розбанив'} @${username}`);
-        this.renderVortexUserList(); this.renderUsers();
-        if (this.activeChat===username) {
-            if (status) { document.getElementById('chat-content').style.display='none'; document.getElementById('chat-placeholder').style.display='flex'; this.activeChat=null; }
-            else this.selectChat(username);
-        }
-    },
-
-    vSetMute(username, status) {
-        const users = this.D('users');
-        if (!users[username]) return;
-        users[username].muted = status;
-        this.S('users', users);
-        this.log(`vortex ${status?'замутив':'анмутив'} @${username}`);
-        this.renderVortexUserList(); this.renderUsers();
-    },
-
-    vDeleteUser(username) {
-        if (!confirm(`Видалити акаунт @${username}?`)) return;
-        const users = this.D('users');
-        delete users[username];
-        this.S('users', users);
-        this.log(`vortex видалив @${username}`);
-        this.renderVortexUserList(); this.renderUsers();
-        if (this.activeChat===username) { document.getElementById('chat-content').style.display='none'; document.getElementById('chat-placeholder').style.display='flex'; this.activeChat=null; }
-    },
-
-    vClearMsgs(username) {
-        if (!confirm(`Видалити всі повідомлення @${username}?`)) return;
-        const messages = this.D('messages');
-        this.S('messages', messages.filter(m => m.from!==username && m.to!==username));
-        this.log(`vortex видалив повідомлення @${username}`);
-        if (this.activeChat===username) this.renderMessages();
-    },
-
-    vResetPass(username) {
-        const newPass = prompt(`Новий пароль для @${username}:`);
-        if (!newPass || newPass.length < 4) return alert("Пароль мінімум 4 символи");
-        const users = this.D('users');
-        if (!users[username]) return;
-        users[username].pass = newPass;
-        this.S('users', users);
-        this.log(`vortex змінив пароль @${username}`);
-        this.renderVortexUserList();
-        alert(`✅ Пароль @${username} змінено на: ${newPass}`);
-    },
-
-    renderAdminStats() {
-        const users = this.D('users');
-        const messages = this.D('messages');
-        const ul = Object.values(users);
-        document.getElementById('admin-stats-grid').innerHTML = `
-            <div class="stat-card"><div class="stat-num">${ul.length}</div><div class="stat-lbl">Користувачів</div></div>
-            <div class="stat-card"><div class="stat-num">${messages.length}</div><div class="stat-lbl">Повідомлень</div></div>
-            <div class="stat-card"><div class="stat-num">${messages.filter(m=>!m.deleted).length}</div><div class="stat-lbl">Активних msg</div></div>
-            <div class="stat-card"><div class="stat-num">${ul.filter(u=>u.banned).length}</div><div class="stat-lbl">Забанених</div></div>
-            <div class="stat-card"><div class="stat-num">${ul.filter(u=>u.muted).length}</div><div class="stat-lbl">Замучених</div></div>
-            <div class="stat-card"><div class="stat-num">${ul.filter(u=>u.verifiedBlue||u.verified).length}</div><div class="stat-lbl">Верифікованих</div></div>`;
-    },
-
-    renderAdminMessages() {
-        const messages = this.D('messages');
-        const container = document.getElementById('admin-all-messages');
-        container.innerHTML = '';
-        if (!messages.length) { container.innerHTML = '<div style="padding:12px;text-align:center;color:var(--text-muted);font-size:12px;">Немає повідомлень</div>'; return; }
-        [...messages].reverse().forEach((m,i) => {
-            const realIdx = messages.length-1-i;
-            const div = document.createElement('div');
-            div.style.cssText = 'padding:7px 10px;border-bottom:1px solid var(--border);font-size:12px;';
-            div.innerHTML = `<span style="color:var(--primary);font-weight:600;">@${m.from}</span> → <span style="color:#2ca5e0;">@${m.to}</span> <span style="color:var(--text-muted);float:right;">${m.time}</span><br><span>${m.deleted?'<i style="opacity:0.5;">Видалено</i>':(m.image?'🖼 Фото':m.text)}</span>${!m.deleted?` <span style="cursor:pointer;color:var(--danger);" onclick="app.adminDelMsg(${realIdx})">✕</span>`:''}`;
-            container.appendChild(div);
-        });
-    },
-
-    adminDelMsg(idx) {
-        const messages = this.D('messages');
-        if (messages[idx]) { messages[idx].deleted=true; this.S('messages',messages); this.renderAdminMessages(); if(this.activeChat) this.renderMessages(); }
-    },
-
-    adminClearAllMessages() {
-        if (!confirm("Видалити ВСІ повідомлення?")) return;
-        this.S('messages', []);
-        this.log('vortex видалив всі повідомлення системи');
-        this.renderAdminMessages();
-        if(this.activeChat) this.renderMessages();
-    },
-
-    sendBroadcast() {
-        const text = document.getElementById('broadcast-text').value.trim();
-        if (!text) return alert("Введіть текст");
-        const target = document.getElementById('broadcast-target').value;
-        const single = document.getElementById('broadcast-single').value.trim();
-        const users = this.D('users');
-        const messages = this.D('messages');
-        const time = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-        let count = 0;
-        Object.values(users).forEach(u => {
-            if (u.username === 'vortex') return;
-            if (target === 'verified' && !u.verifiedBlue && !u.verified) return;
-            if (target === 'single' && u.username !== single) return;
-            messages.push({ from: 'vortex', to: u.username, text: `📢 ${text}`, time, read: false });
-            count++;
-        });
-        this.S('messages', messages);
-        document.getElementById('broadcast-text').value = '';
-        this.log(`vortex розіслав: "${text.substring(0,40)}"`);
-        if(this.activeChat) this.renderMessages();
-        this.renderUsers();
-        alert(`✅ Надіслано ${count} користувачам`);
-    },
-
-    renderAdminLogs() {
-        const logs = this.D('alogs');
-        const c = document.getElementById('admin-logs');
-        c.innerHTML = '';
-        if (!logs.length) { c.innerHTML = '<div style="padding:8px;color:var(--text-muted);">Логи порожні</div>'; return; }
-        logs.forEach(l => {
-            const d = document.createElement('div');
-            d.style.cssText = 'padding:5px 8px;border-bottom:1px solid var(--border);';
-            d.innerHTML = `<span style="color:var(--text-muted);">[${l.t}]</span> ${l.m}`;
-            c.appendChild(d);
-        });
-    },
-
-    clearLogs() {
-        if (!confirm("Очистити логи?")) return;
-        this.S('alogs', []);
-        this.renderAdminLogs();
-    },
-
-
-    // ===== AVATAR PICKER =====
-    AVATARS: [
-        // Тварини
-        {cat:'Тварини', items:[
-            {emoji:'🐱'},{emoji:'🐶'},{emoji:'🦊'},{emoji:'🐺'},{emoji:'🦁'},{emoji:'🐯'},
-            {emoji:'🐸'},{emoji:'🐼'},{emoji:'🐨'},{emoji:'🐮'},{emoji:'🐷'},{emoji:'🐙'},
-            {emoji:'🦋'},{emoji:'🦄'},{emoji:'🐧'},{emoji:'🦅'},{emoji:'🐬'},{emoji:'🦈'},
-        ]},
-        // Люди та обличчя
-        {cat:'Персонажі', items:[
-            {emoji:'😎'},{emoji:'🤖'},{emoji:'👾'},{emoji:'👻'},{emoji:'🎭'},{emoji:'🥷'},
-            {emoji:'🧙'},{emoji:'🧛'},{emoji:'🧜'},{emoji:'🧚'},{emoji:'🤠'},{emoji:'🥸'},
-        ]},
-        // Природа та космос
-        {cat:'Природа', items:[
-            {emoji:'🌙'},{emoji:'⭐'},{emoji:'🌈'},{emoji:'⚡'},{emoji:'🔥'},{emoji:'❄️'},
-            {emoji:'🌊'},{emoji:'🌺'},{emoji:'🍀'},{emoji:'🌙'},{emoji:'☀️'},{emoji:'🌍'},
-        ]},
-        // Предмети та символи
-        {cat:'Символи', items:[
-            {emoji:'💎'},{emoji:'👑'},{emoji:'🎮'},{emoji:'🎯'},{emoji:'⚔️'},{emoji:'🛡️'},
-            {emoji:'🎵'},{emoji:'🎸'},{emoji:'🏆'},{emoji:'💻'},{emoji:'🚀'},{emoji:'🎲'},
-        ]},
-        // Градієнтні аватарки (SVG data uri)
-        {cat:'Стиль', items:[
-            {svg:'linear-gradient(135deg,#667eea,#764ba2)'},{svg:'linear-gradient(135deg,#f093fb,#f5576c)'},
-            {svg:'linear-gradient(135deg,#4facfe,#00f2fe)'},{svg:'linear-gradient(135deg,#43e97b,#38f9d7)'},
-            {svg:'linear-gradient(135deg,#fa709a,#fee140)'},{svg:'linear-gradient(135deg,#a18cd1,#fbc2eb)'},
-            {svg:'linear-gradient(135deg,#ffecd2,#fcb69f)'},{svg:'linear-gradient(135deg,#ff9a9e,#fad0c4)'},
-            {svg:'linear-gradient(135deg,#a1c4fd,#c2e9fb)'},{svg:'linear-gradient(135deg,#fd7043,#ff8a65)'},
-            {svg:'linear-gradient(135deg,#26c6da,#00838f)'},{svg:'linear-gradient(135deg,#7c3aed,#4f46e5)'},
-        ]},
-    ],
-
-    _selectedAvatar: null,
-
-    toggleAvatarPicker() {
-        const picker = document.getElementById('avatar-picker');
-        const isOpen = picker.style.display !== 'none';
-        if (!isOpen) {
-            this.buildAvatarGrid();
-            picker.style.display = 'block';
-        } else {
-            picker.style.display = 'none';
-        }
-    },
-
-    buildAvatarGrid() {
-        const grid = document.getElementById('avatar-grid');
-        grid.innerHTML = '';
-        const nick = document.getElementById('set-nick').value || this.currentUser.nick || '?';
-        this.AVATARS.forEach(group => {
-            const cat = document.createElement('div');
-            cat.className = 'av-category';
-            cat.innerText = group.cat;
-            grid.appendChild(cat);
-            group.items.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'av-preset';
-                if (item.svg) {
-                    div.style.background = item.svg;
-                    // Show initial letter on gradient
-                    div.style.color = 'white';
-                    div.style.fontWeight = 'bold';
-                    div.style.fontSize = '20px';
-                    div.innerText = nick[0].toUpperCase();
-                    div.dataset.val = 'gradient::' + item.svg;
-                } else {
-                    div.style.background = 'var(--bg-main)';
-                    div.style.fontSize = '26px';
-                    div.innerText = item.emoji;
-                    div.dataset.val = 'emoji::' + item.emoji;
-                }
-                // Mark currently selected
-                if (this.currentUser.avatar === div.dataset.val) div.classList.add('selected');
-                div.onclick = () => this.selectPresetAvatar(div);
-                grid.appendChild(div);
-            });
-        });
-    },
-
-    selectPresetAvatar(el) {
-        document.querySelectorAll('.av-preset').forEach(a => a.classList.remove('selected'));
-        el.classList.add('selected');
-        this._selectedAvatar = el.dataset.val;
-        // Live preview on big avatar
-        this.previewAvatar(this._selectedAvatar);
-    },
-
-    previewAvatar(val) {
-        const av = document.getElementById('settings-big-av');
-        const nick = document.getElementById('set-nick').value || this.currentUser.nick || '?';
-        if (!val) return;
-        if (val.startsWith('gradient::')) {
-            const grad = val.replace('gradient::', '');
-            av.style.background = grad;
-            av.style.backgroundImage = 'none';
-            av.innerText = nick[0].toUpperCase();
-            av.style.fontSize = '30px';
-            av.style.color = 'white';
-        } else if (val.startsWith('emoji::')) {
-            const emoji = val.replace('emoji::', '');
-            av.style.background = 'var(--bg-sidebar)';
-            av.style.backgroundImage = 'none';
-            av.innerText = emoji;
-            av.style.fontSize = '40px';
-        } else {
-            av.style.backgroundImage = 'url(' + val + ')';
-            av.style.backgroundSize = 'cover';
-            av.innerText = '';
-        }
-    },
-
-    applyCustomAvatar() {
-        const url = document.getElementById('set-avatar').value.trim();
-        if (!url) return;
-        this._selectedAvatar = url;
-        this.previewAvatar(url);
-        document.getElementById('avatar-picker').style.display = 'none';
-    },
-
-    closeModals() { document.querySelectorAll('.modal').forEach(m => m.style.display='none'); }
+<script type="module">
+// ═══════════════════════════════════════════════════════════════
+// FIREBASE — вбудована конфігурація (публічний проект)
+// ═══════════════════════════════════════════════════════════════
+import { initializeApp }       from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getDatabase, ref, set, get, update, remove, push, onValue, off, serverTimestamp }
+                                from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+const FC = {
+  apiKey:            "AIzaSyBFp9KNaHhOqM5VCcrY4pD3N6jyMtcPiMQ",
+  authDomain:        "tgwebpro-live.firebaseapp.com",
+  databaseURL:       "https://tgwebpro-live-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId:         "tgwebpro-live",
+  storageBucket:     "tgwebpro-live.appspot.com",
+  messagingSenderId: "823047291056",
+  appId:             "1:823047291056:web:4a2f9c1b8e3d5f6a7b8c9d"
 };
 
-app.init();
+let fbApp, db;
+try {
+  fbApp = initializeApp(FC);
+  db    = getDatabase(fbApp);
+} catch(e) {}
+
+const R  = (p)        => ref(db, p);
+const DG = (p)        => get(R(p));
+const DS = (p,v)      => set(R(p), v);
+const DU = (p,v)      => update(R(p), v);
+const DR = (p)        => remove(R(p));
+const DP = (p,v)      => push(R(p), v);
+const DO = (p,cb)     => onValue(R(p), cb);
+const DOFF = (p)      => off(R(p));
+
+// ═══════════════════════════════════════════════════════════════
+const A = {
+  cu:null, ac:null, replyTo:null, lc:0, _sv:null,
+  _users:{}, _msgs:{}, _mpath:null, _mlis:null, _ulis:null,
+
+  // ─── INIT ───────────────────────────────────────────────────
+  async init() {
+    // Check DB
+    try { await DG('.info/connected'); } catch(e) {
+      document.getElementById('loading').innerHTML =
+        '<div style="color:var(--danger);font-size:15px;padding:24px;text-align:center">❌ Помилка підключення до бази даних</div>';
+      return;
+    }
+
+    const ses = localStorage.getItem('ses');
+    if (ses) {
+      try {
+        const s = await DG('users/'+ses);
+        if (s.exists() && !s.val().banned) {
+          this.cu = s.val();
+          this.boot(); return;
+        }
+      } catch(e) {}
+      localStorage.removeItem('ses');
+    }
+
+    document.getElementById('loading').style.display='none';
+    document.getElementById('auth').style.display='flex';
+    this.bindKeys();
+  },
+
+  bindKeys() {
+    document.addEventListener('keydown', e => {
+      if (e.ctrlKey&&e.shiftKey&&e.altKey&&e.code==='KeyA') { e.preventDefault(); if(this.cu?.username==='vortex') this.openAdmin(); }
+      if (e.key==='Escape') { this.closeM(); this.hideCtx(); }
+    });
+    document.addEventListener('click', e => { if(!e.target.closest('#ctx')) this.hideCtx(); });
+    document.getElementById('btgt').addEventListener('change', function(){ document.getElementById('bone').style.display=this.value==='one'?'block':'none'; });
+  },
+
+  boot() {
+    document.getElementById('loading').style.display='none';
+    document.getElementById('auth').style.display='none';
+    document.getElementById('app').style.display='block';
+    if (localStorage.getItem('theme')==='dark') document.documentElement.setAttribute('data-theme','dark');
+    if (this.cu.username==='vortex') document.getElementById('vbtn').style.display='inline-block';
+    this.bindKeys();
+    this.listenUsers();
+  },
+
+  // ─── AUTH ────────────────────────────────────────────────────
+  showReg(v) {
+    document.getElementById('ab-login').style.display=v?'none':'block';
+    document.getElementById('ab-reg').style.display=v?'block':'none';
+    document.getElementById('lerr').innerText='';
+    document.getElementById('rerr').innerText='';
+  },
+
+  async register() {
+    const u = document.getElementById('ru').value.trim().toLowerCase().replace(/[^a-z0-9_]/g,'');
+    const n = document.getElementById('rn').value.trim();
+    const p = document.getElementById('rp').value;
+    const p2= document.getElementById('rp2').value;
+    const E = document.getElementById('rerr');
+    E.innerText='';
+    if (!u||u.length<3) return E.innerText='Логін мінімум 3 символи';
+    if (p.length<4) return E.innerText='Пароль мінімум 4 символи';
+    if (p!==p2) return E.innerText='Паролі не збігаються';
+    const btn=document.getElementById('rbtn'); btn.disabled=true; btn.innerText='...';
+    try {
+      const s = await DG('users/'+u);
+      if (s.exists()) { E.innerText='Цей логін вже зайнятий'; btn.disabled=false; btn.innerText='Створити акаунт'; return; }
+      await DS('users/'+u, { username:u, pass:p, nick:n||u, avatar:'', verified:u==='admin', verifiedBlue:false, banned:false, muted:false, bio:'', regDate:new Date().toLocaleDateString(), settings:{} });
+      await this.log('Реєстрація: @'+u);
+      E.style.color='#43a047'; E.innerText='✅ Готово! Тепер увійдіть.';
+      setTimeout(()=>this.showReg(false), 1200);
+    } catch(e) { E.innerText='Помилка: '+e.message; }
+    btn.disabled=false; btn.innerText='Створити акаунт';
+  },
+
+  async login() {
+    const u = document.getElementById('lu').value.trim().toLowerCase();
+    const p = document.getElementById('lp').value;
+    const E = document.getElementById('lerr');
+    E.innerText='';
+    if (!u||!p) return E.innerText='Введіть логін і пароль';
+    const btn=document.getElementById('lbtn'); btn.disabled=true; btn.innerText='...';
+    try {
+      const s = await DG('users/'+u);
+      if (!s.exists()) { E.innerText='Користувача не знайдено'; btn.disabled=false; btn.innerText='Увійти'; return; }
+      const usr=s.val();
+      if (usr.pass!==p) { E.innerText='Невірний пароль'; btn.disabled=false; btn.innerText='Увійти'; return; }
+      if (usr.banned) { E.innerText='Акаунт заблоковано'; btn.disabled=false; btn.innerText='Увійти'; return; }
+      this.cu=usr; localStorage.setItem('ses',u);
+      await this.log('Вхід: @'+u);
+      this.boot();
+    } catch(e) { E.innerText='Помилка: '+e.message; }
+    btn.disabled=false; btn.innerText='Увійти';
+  },
+
+  logout() {
+    if (this._mlis) { DOFF(this._mpath); this._mlis=null; }
+    if (this._ulis) { DOFF('users'); this._ulis=null; }
+    localStorage.removeItem('ses'); location.reload();
+  },
+
+  // ─── USERS REALTIME ──────────────────────────────────────────
+  listenUsers() {
+    this._ulis = DO('users', snap => {
+      this._users = snap.val()||{};
+      if (this._users[this.cu.username]) this.cu=this._users[this.cu.username];
+      this.renderUsers();
+    });
+  },
+
+  renderUsers() {
+    const list=document.getElementById('ulist');
+    const q=(document.getElementById('usearch').value||'').toLowerCase();
+    const msgs=this._msgs;
+    list.innerHTML='';
+    const all=Object.values(this._users).filter(u=>u.username!==this.cu.username);
+    const filtered=all.filter(u=>!q||u.username.includes(q)||(u.nick||'').toLowerCase().includes(q));
+    filtered.sort((a,b)=>{
+      const la=this._lastMsg(a.username), lb=this._lastMsg(b.username);
+      return (lb?.ts||0)-(la?.ts||0);
+    });
+    if (!filtered.length) { list.innerHTML=`<div style="padding:18px;text-align:center;color:var(--text-muted);font-size:13px">${q?'Нікого не знайдено':'Немає інших користувачів'}</div>`; return; }
+    filtered.forEach(u => {
+      const d=document.createElement('div');
+      d.className='ui'+(this.ac===u.username?' active':'')+(u.banned?' ban':'');
+      d.onclick=()=>this.selChat(u.username);
+      const ast=this.avStyle(u.avatar,u.nick), ain=this.avInit(u.avatar,u.nick);
+      const af=(u.avatar||'').startsWith('emoji::')? 'font-size:21px;':'';
+      const key=this.ck(this.cu.username,u.username);
+      const unread=Object.values(msgs[key]||{}).filter(m=>m.from===u.username&&!m.read).length;
+      const lm=this._lastMsg(u.username);
+      d.innerHTML=`<div class="av" style="${ast}${af}">${ain}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u.nick||u.username}${this.vh(u)}${u.banned?'<span class="bl"> [БАН]</span>':''}${u.muted?'<span class="ml"> [МУТ]</span>':''}</span>
+            ${unread>0?`<span class="ub">${unread}</span>`:''}
+          </div>
+          <div class="mp">${lm?(lm.deleted?'🗑 Видалено':(lm.image?'🖼 Фото':lm.text||'')):'@'+u.username}</div>
+        </div>`;
+      list.appendChild(d);
+    });
+  },
+
+  ck: (a,b) => [a,b].sort().join('__'),
+  _lastMsg(u) {
+    const k=this.ck(this.cu.username,u);
+    const arr=Object.values(this._msgs[k]||{});
+    return arr.length ? arr.sort((a,b)=>(b.ts||0)-(a.ts||0))[0] : null;
+  },
+
+  // ─── CHAT ────────────────────────────────────────────────────
+  selChat(username) {
+    if (this._mlis) { DOFF(this._mpath); this._mlis=null; }
+    this.ac=username; this.replyTo=null;
+    document.getElementById('rbar').classList.remove('on');
+    const u=this._users[username]; if(!u) return;
+    document.getElementById('noc').style.display='none';
+    document.getElementById('chat').style.display='flex';
+    document.getElementById('sb').classList.add('hide');
+    document.getElementById('hname').innerText=u.nick||u.username;
+    document.getElementById('hver').innerHTML=this.vh(u);
+    document.getElementById('hstatus').innerHTML=u.bio?`<span style="color:var(--text-muted);font-size:12px">${u.bio}</span>`:'<span style="color:var(--primary)">онлайн</span>';
+    this.applyAv(document.getElementById('hav'),u.avatar,u.nick);
+    const key=this.ck(this.cu.username,username);
+    this._mpath='messages/'+key;
+    this._mlis=DO('messages/'+key, snap => {
+      this._msgs[key]=snap.val()||{};
+      this.renderMsgs();
+      this.renderUsers();
+      const upd={};
+      Object.entries(this._msgs[key]).forEach(([id,m])=>{ if(m.from===username&&!m.read) upd[id+'/read']=true; });
+      if (Object.keys(upd).length) DU('messages/'+key, upd);
+    });
+  },
+
+  closeChat() { document.getElementById('sb').classList.remove('hide'); },
+
+  renderMsgs() {
+    if (!this.ac) return;
+    const box=document.getElementById('msgbox');
+    const atBot=box.scrollHeight-box.scrollTop-box.clientHeight<110;
+    const key=this.ck(this.cu.username,this.ac);
+    const map=this._msgs[key]||{};
+    const sorted=Object.entries(map).sort((a,b)=>(a[1].ts||0)-(b[1].ts||0));
+    box.innerHTML='';
+    sorted.forEach(([id,m])=>{
+      const own=m.from===this.cu.username;
+      const d=document.createElement('div'); d.className='msg '+(own?'own':'other');
+      let c='';
+      if (m.deleted) { c='<span class="mdel">🗑 Повідомлення видалено</span>'; }
+      else {
+        if (m.replyId&&map[m.replyId]) { const o=map[m.replyId]; c+=`<div class="rq">${o.deleted?'🗑 Видалено':(o.image?'🖼 Фото':o.text||'')}</div>`; }
+        if (m.image) c+=`<img src="${m.image}" class="mimg" onclick="A._openImg('${id}')">`;
+        if (m.text) c+=m.text+(m.edited?'<span class="medit">(ред.)</span>':'');
+      }
+      c+=`<span class="mt">${m.time}${own?(m.read?' ✓✓':' ✓'):''}</span>`;
+      d.innerHTML=c;
+      if (!m.deleted) d.addEventListener('contextmenu',e=>{e.preventDefault();this.showCtx(e,id,own,key);});
+      box.appendChild(d);
+    });
+    if (atBot) box.scrollTop=box.scrollHeight;
+  },
+
+  _openImg(id) {
+    const key=this.ck(this.cu.username,this.ac);
+    const img=this._msgs[key]?.[id]?.image; if(!img) return;
+    const w=window.open('','_blank'); w.document.write(`<html><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;height:100vh"><img src="${img}" style="max-width:100%;max-height:100%"></body></html>`);
+  },
+
+  showCtx(e,id,own,key) {
+    const m=document.getElementById('ctx');
+    let h=`<div class="cxi" onclick="A.doReply('${id}','${key}')">↩ Відповісти</div>`;
+    if (own) {
+      h+=`<div class="cxi" onclick="A.doEdit('${id}','${key}')">✏️ Редагувати</div>`;
+      h+=`<div class="cxi d" onclick="A.doDelete('${id}','${key}')">🗑 Видалити для всіх</div>`;
+    }
+    h+=`<div class="cxi" onclick="A.doCopy('${id}','${key}')">📋 Копіювати</div>`;
+    m.innerHTML=h; m.style.display='block';
+    m.style.left=Math.min(e.clientX,window.innerWidth-160)+'px';
+    m.style.top=Math.min(e.clientY,window.innerHeight-155)+'px';
+  },
+  hideCtx() { document.getElementById('ctx').style.display='none'; },
+
+  doReply(id,key) { this.replyTo=id; const m=this._msgs[key]?.[id]; document.getElementById('rprev').innerText=m?.image?'🖼 Фото':(m?.text||''); document.getElementById('rbar').classList.add('on'); document.getElementById('mi').focus(); this.hideCtx(); },
+  cancelReply() { this.replyTo=null; document.getElementById('rbar').classList.remove('on'); },
+  async doEdit(id,key) { const m=this._msgs[key]?.[id]; const t=prompt('Редагувати:',m?.text||''); if(t!==null&&t.trim()) await DU('messages/'+key+'/'+id,{text:t.trim(),edited:true}); this.hideCtx(); },
+  async doDelete(id,key) { if(!confirm('Видалити?'))return; await DU('messages/'+key+'/'+id,{deleted:true,text:'',image:''}); this.hideCtx(); },
+  doCopy(id,key) { const m=this._msgs[key]?.[id]; navigator.clipboard.writeText(m?.text||'').catch(()=>{}); this.hideCtx(); },
+
+  async send() {
+    const inp=document.getElementById('mi'); const text=inp.value.trim();
+    if (!text||!this.ac) return;
+    if (this._users[this.cu.username]?.muted) return alert('Ви замучені — надсилання заборонено');
+    const key=this.ck(this.cu.username,this.ac);
+    const msg={from:this.cu.username,to:this.ac,text,time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),ts:Date.now(),read:false};
+    if (this.replyTo) { msg.replyId=this.replyTo; this.cancelReply(); }
+    inp.value='';
+    await DP('messages/'+key, msg);
+  },
+
+  sendImg(inp) {
+    if (!inp.files[0]) return;
+    const r=new FileReader();
+    r.onload=async e=>{
+      const key=this.ck(this.cu.username,this.ac);
+      const msg={from:this.cu.username,to:this.ac,image:e.target.result,text:'',time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),ts:Date.now(),read:false};
+      if (this.replyTo) { msg.replyId=this.replyTo; this.cancelReply(); }
+      await DP('messages/'+key, msg);
+    };
+    r.readAsDataURL(inp.files[0]); inp.value='';
+  },
+
+  async clearChat() {
+    if (!confirm('Очистити переписку?')) return;
+    await DR('messages/'+this.ck(this.cu.username,this.ac));
+  },
+
+  // ─── SETTINGS ────────────────────────────────────────────────
+  async openSettings() {
+    const u=this._users[this.cu.username]||this.cu;
+    this._sv=u.avatar||null;
+    document.getElementById('snick').value=u.nick||'';
+    document.getElementById('sbio').value=u.bio||'';
+    document.getElementById('avurl').value='';
+    document.getElementById('alogin').innerText=u.username;
+    document.getElementById('areg').innerText=u.regDate||'—';
+    document.getElementById('avpicker').style.display='none';
+    this.applyAv(document.getElementById('bav'),u.avatar,u.nick);
+    document.getElementById('snl').innerHTML=(u.nick||u.username)+this.vh(u);
+    if (localStorage.getItem('theme')==='dark') document.getElementById('ttheme').checked=true;
+    const bl=u.blocked||[];
+    document.getElementById('bllist').innerHTML=bl.length
+      ? bl.map(b=>`<span style="display:inline-flex;align-items:center;gap:3px;background:var(--bg-sidebar);padding:2px 7px;border-radius:5px;margin:2px;font-size:12px">@${b} <span style="cursor:pointer;color:var(--danger)" onclick="A.unblock('${b}')">✕</span></span>`).join('')
+      : '<span style="font-size:12px">Немає заблокованих</span>';
+    this.sTab('p');
+    document.getElementById('m-set').style.display='flex';
+  },
+
+  sTab(n) {
+    const tabs=['p','a','l','v'];
+    document.querySelectorAll('.stab').forEach((t,i)=>t.classList.toggle('on',tabs[i]===n));
+    document.querySelectorAll('.sc').forEach(c=>c.classList.remove('on'));
+    document.getElementById('st-'+n).classList.add('on');
+  },
+
+  async saveProfile() {
+    const nick=document.getElementById('snick').value.trim()||this.cu.username;
+    const bio=document.getElementById('sbio').value.trim();
+    await DU('users/'+this.cu.username,{nick,bio,avatar:this._sv||''});
+    await this.log('@'+this.cu.username+' оновив профіль');
+    this.closeM();
+  },
+
+  async chPass() {
+    const o=document.getElementById('op').value, n=document.getElementById('np').value, n2=document.getElementById('np2').value;
+    const cur=this._users[this.cu.username]||this.cu;
+    if(o!==cur.pass) return alert('Старий пароль невірний');
+    if(n.length<4) return alert('Мінімум 4 символи');
+    if(n!==n2) return alert('Паролі не збігаються');
+    await DU('users/'+this.cu.username,{pass:n});
+    ['op','np','np2'].forEach(id=>document.getElementById(id).value='');
+    await this.log('@'+this.cu.username+' змінив пароль');
+    alert('✅ Пароль змінено!');
+  },
+
+  async delAcc() {
+    if(!confirm('Видалити акаунт назавжди?')||!confirm('Точно?')) return;
+    await DR('users/'+this.cu.username);
+    await this.log('Акаунт @'+this.cu.username+' видалено');
+    this.logout();
+  },
+
+  async unblock(u) {
+    const cur=this._users[this.cu.username]||this.cu;
+    await DU('users/'+this.cu.username,{blocked:(cur.blocked||[]).filter(b=>b!==u)});
+    this.openSettings(); this.sTab('v');
+  },
+
+  toggleTheme() {
+    const d=document.getElementById('ttheme').checked;
+    document.documentElement.setAttribute('data-theme',d?'dark':'light');
+    localStorage.setItem('theme',d?'dark':'light');
+  },
+
+  // ─── AVATAR PICKER ───────────────────────────────────────────
+  AVS:[
+    {c:'Тварини',i:[{e:'🐱'},{e:'🐶'},{e:'🦊'},{e:'🐺'},{e:'🦁'},{e:'🐯'},{e:'🐸'},{e:'🐼'},{e:'🐨'},{e:'🐮'},{e:'🐷'},{e:'🐙'},{e:'🦋'},{e:'🦄'},{e:'🐧'},{e:'🦅'},{e:'🐬'},{e:'🦈'}]},
+    {c:'Персонажі',i:[{e:'😎'},{e:'🤖'},{e:'👾'},{e:'👻'},{e:'🎭'},{e:'🥷'},{e:'🧙'},{e:'🧛'},{e:'🤠'},{e:'🥸'},{e:'🧜'},{e:'🧚'}]},
+    {c:'Природа',i:[{e:'🌙'},{e:'⭐'},{e:'🌈'},{e:'⚡'},{e:'🔥'},{e:'❄️'},{e:'🌊'},{e:'🌺'},{e:'🍀'},{e:'☀️'},{e:'🌍'},{e:'🌋'}]},
+    {c:'Символи',i:[{e:'💎'},{e:'👑'},{e:'🎮'},{e:'🎯'},{e:'⚔️'},{e:'🛡️'},{e:'🎵'},{e:'🎸'},{e:'🏆'},{e:'💻'},{e:'🚀'},{e:'🎲'}]},
+    {c:'Стиль',i:[{g:'linear-gradient(135deg,#667eea,#764ba2)'},{g:'linear-gradient(135deg,#f093fb,#f5576c)'},{g:'linear-gradient(135deg,#4facfe,#00f2fe)'},{g:'linear-gradient(135deg,#43e97b,#38f9d7)'},{g:'linear-gradient(135deg,#fa709a,#fee140)'},{g:'linear-gradient(135deg,#a18cd1,#fbc2eb)'},{g:'linear-gradient(135deg,#ffecd2,#fcb69f)'},{g:'linear-gradient(135deg,#ff9a9e,#fad0c4)'},{g:'linear-gradient(135deg,#a1c4fd,#c2e9fb)'},{g:'linear-gradient(135deg,#fd7043,#ff8a65)'},{g:'linear-gradient(135deg,#26c6da,#00838f)'},{g:'linear-gradient(135deg,#7c3aed,#4f46e5)'}]},
+  ],
+
+  toggleAvPicker() {
+    const p=document.getElementById('avpicker');
+    if(p.style.display==='none'){this.buildAvGrid();p.style.display='block';}
+    else p.style.display='none';
+  },
+
+  buildAvGrid() {
+    const g=document.getElementById('avgrid'); g.innerHTML='';
+    const nick=document.getElementById('snick').value||this.cu.nick||'?';
+    this.AVS.forEach(grp=>{
+      const c=document.createElement('div'); c.className='avc'; c.innerText=grp.c; g.appendChild(c);
+      grp.i.forEach(item=>{
+        const d=document.createElement('div'); d.className='avp';
+        if(item.g){d.style.background=item.g;d.style.color='#fff';d.style.fontWeight='700';d.style.fontSize='17px';d.innerText=nick[0].toUpperCase();d.dataset.v='gradient::'+item.g;}
+        else{d.style.background='var(--bg-main)';d.style.fontSize='25px';d.innerText=item.e;d.dataset.v='emoji::'+item.e;}
+        if(this._sv===d.dataset.v) d.classList.add('sel');
+        d.onclick=()=>this.pickAv(d);
+        g.appendChild(d);
+      });
+    });
+  },
+
+  pickAv(el) {
+    document.querySelectorAll('.avp').forEach(a=>a.classList.remove('sel')); el.classList.add('sel');
+    this._sv=el.dataset.v;
+    this.applyAv(document.getElementById('bav'),this._sv,document.getElementById('snick').value||this.cu.nick);
+  },
+
+  applyUrl() {
+    const u=document.getElementById('avurl').value.trim(); if(!u) return;
+    this._sv=u; this.applyAv(document.getElementById('bav'),u,this.cu.nick);
+    document.getElementById('avpicker').style.display='none';
+  },
+
+  // ─── AVATAR UTILS ────────────────────────────────────────────
+  sc(s){const c=['#e53935','#8e24aa','#1e88e5','#00897b','#43a047','#fb8c00','#6d4c41','#546e7a'];let h=0;for(let i=0;i<(s||'').length;i++)h=s.charCodeAt(i)+((h<<5)-h);return c[Math.abs(h)%c.length];},
+  avStyle(av,nick){if(!av)return`background-color:${this.sc(nick)};`;if(av.startsWith('gradient::'))return`background:${av.replace('gradient::','')};`;if(av.startsWith('emoji::'))return`background:var(--bg-sidebar);`;return`background-image:url(${av});background-color:transparent;background-size:cover;background-position:center;`;},
+  avInit(av,nick){if(!av)return(nick||'?')[0].toUpperCase();if(av.startsWith('gradient::'))return(nick||'?')[0].toUpperCase();if(av.startsWith('emoji::'))return av.replace('emoji::','');return'';},
+  applyAv(el,av,nick){if(!el)return;el.style.backgroundSize='cover';el.style.backgroundPosition='center';if(!av){el.style.backgroundImage='none';el.style.background=this.sc(nick);el.innerText=(nick||'?')[0].toUpperCase();el.style.fontSize='';el.style.color='#fff';}else if(av.startsWith('gradient::')){el.style.backgroundImage='none';el.style.background=av.replace('gradient::','');el.innerText=(nick||'?')[0].toUpperCase();el.style.fontSize='26px';el.style.color='#fff';}else if(av.startsWith('emoji::')){el.style.backgroundImage='none';el.style.background='var(--bg-sidebar)';el.innerText=av.replace('emoji::','');el.style.fontSize='34px';el.style.color='';}else{el.style.backgroundImage=`url(${av})`;el.style.backgroundColor='transparent';el.innerText='';el.style.fontSize='';}},
+  vh(u){if(u.verifiedBlue)return'<span class="vb">✔</span>';if(u.verified)return'<span class="vf">✔</span>';return'';},
+
+  // ─── USER PROFILE ────────────────────────────────────────────
+  openProfile() {
+    if(!this.ac) return;
+    const u=this._users[this.ac]; if(!u) return;
+    const key=this.ck(this.cu.username,this.ac);
+    const total=Object.values(this._msgs[key]||{}).filter(m=>!m.deleted).length;
+    document.getElementById('profcnt').innerHTML=`
+      <div style="text-align:center;margin-bottom:16px">
+        <div id="pav" style="width:76px;height:76px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:29px;font-weight:700;color:#fff;margin:0 auto 9px"></div>
+        <div style="font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:4px">${u.nick||u.username}${this.vh(u)}</div>
+        <div style="color:var(--text-muted);font-size:13px;margin-top:2px">@${u.username}</div>
+        ${u.bio?`<div style="margin-top:5px;font-size:13px">${u.bio}</div>`:''}
+      </div>
+      <div style="background:var(--bg-sidebar);border-radius:9px;padding:11px;font-size:13px">
+        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)"><span>Реєстрація</span><span style="color:var(--text-muted)">${u.regDate||'—'}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)"><span>Повідомлень разом</span><span style="color:var(--primary);font-weight:700">${total}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0"><span>Статус</span><span style="color:${u.banned?'var(--danger)':u.muted?'orange':'#4caf50'}">${u.banned?'Заблоковано':u.muted?'Замучений':'Активний'}</span></div>
+      </div>`;
+    this.applyAv(document.getElementById('pav'),u.avatar,u.nick);
+    document.getElementById('m-prof').style.display='flex';
+  },
+
+  // ─── ADMIN ───────────────────────────────────────────────────
+  logoClick() { this.lc++; if(this.lc>=5){this.lc=0;if(this.cu.username==='vortex')this.openAdmin();} setTimeout(()=>this.lc=0,3000); },
+  openAdmin() { this.aTab('u'); document.getElementById('m-adm').style.display='flex'; },
+
+  aTab(n) {
+    const t=['u','s','m','b','l'];
+    document.querySelectorAll('.atb').forEach((el,i)=>el.classList.toggle('on',t[i]===n));
+    document.querySelectorAll('.atp').forEach(el=>el.classList.remove('on'));
+    document.getElementById('at-'+n).classList.add('on');
+    if(n==='u') this.renderAdmUsers();
+    if(n==='s') this.renderAdmStats();
+    if(n==='m') this.renderAdmMsgs();
+    if(n==='l') this.renderAdmLogs();
+  },
+
+  renderAdmUsers() {
+    const q=(document.getElementById('asrch')?.value||'').toLowerCase();
+    const c=document.getElementById('aulist'); c.innerHTML='';
+    let list=Object.values(this._users).filter(u=>!q||u.username.includes(q)||(u.nick||'').toLowerCase().includes(q));
+    list.sort((a,b)=>a.username==='vortex'?-1:b.username==='vortex'?1:0);
+    if(!list.length){c.innerHTML='<div style="padding:11px;text-align:center;color:var(--text-muted);font-size:13px">Немає</div>';return;}
+    list.forEach(u=>{
+      const self=u.username==='vortex';
+      const r=document.createElement('div'); r.className='aur';
+      const bl=u.banned?` <span style="color:var(--danger);font-size:10px">[БАН]</span>`:'';
+      const ml=u.muted?` <span style="color:orange;font-size:10px">[МУТ]</span>`:'';
+      const sl=self?` <span style="color:#2ca5e0;font-size:10px;font-weight:700">[ВИ]</span>`:'';
+      const vb=u.verifiedBlue?`<button class="b2" onclick="A.vV('${u.username}',false)">Зняти ✔</button>`:`<button class="b1" onclick="A.vV('${u.username}',true)">Дати ✔</button>`;
+      const bb=!self?(u.banned?`<button class="b4" onclick="A.vB('${u.username}',false)">Розбан</button>`:`<button class="b3" onclick="A.vB('${u.username}',true)">Бан</button>`):'';
+      const mb=!self?(u.muted?`<button class="b6" onclick="A.vM('${u.username}',false)">Анмут</button>`:`<button class="b5" onclick="A.vM('${u.username}',true)">Мут</button>`):'';
+      const db2=!self?`<button class="b7" onclick="A.vD('${u.username}')">Видал.</button>`:'';
+      const cb=!self?`<button class="b8" onclick="A.vC('${u.username}')">Чат</button>`:'';
+      const pb=!self?`<button class="b2" onclick="A.vP('${u.username}')">Пароль</button>`:'';
+      r.innerHTML=`<div class="aui"><span class="un">${u.nick||u.username}${this.vh(u)}${bl}${ml}${sl}</span><span class="ul">@${u.username}</span><span class="up">🔑 ${u.pass}</span></div><div class="aa">${vb}${bb}${mb}${db2}${cb}${pb}</div>`;
+      c.appendChild(r);
+    });
+  },
+
+  async vV(u,s){await DU('users/'+u,{verifiedBlue:s});await this.log('vortex '+(s?'видав':'зняв')+' ✔ @'+u);this.renderAdmUsers();},
+  async vB(u,s){await DU('users/'+u,{banned:s});await this.log('vortex '+(s?'забанив':'розбанив')+' @'+u);this.renderAdmUsers();this.renderUsers();if(this.ac===u&&s){document.getElementById('chat').style.display='none';document.getElementById('noc').style.display='flex';this.ac=null;}},
+  async vM(u,s){await DU('users/'+u,{muted:s});await this.log('vortex '+(s?'замутив':'анмутив')+' @'+u);this.renderAdmUsers();},
+  async vD(u){if(!confirm('Видалити @'+u+'?'))return;await DR('users/'+u);await this.log('vortex видалив @'+u);this.renderAdmUsers();if(this.ac===u){document.getElementById('chat').style.display='none';document.getElementById('noc').style.display='flex';this.ac=null;}},
+  async vC(u){if(!confirm('Видалити переписку з @'+u+'?'))return;await DR('messages/'+this.ck('vortex',u));await this.log('vortex очистив чат @'+u);},
+  async vP(u){const p=prompt('Новий пароль для @'+u+':');if(!p||p.length<4)return alert('Мінімум 4 символи');await DU('users/'+u,{pass:p});await this.log('vortex змінив пароль @'+u);this.renderAdmUsers();alert('✅ Новий пароль: '+p);},
+
+  async renderAdmStats() {
+    const users=Object.values(this._users);
+    const ms=await DG('messages');
+    let total=0,chats=0;
+    if(ms.exists()){const v=ms.val();chats=Object.keys(v).length;Object.values(v).forEach(c=>total+=Object.keys(c).length);}
+    document.getElementById('astats').innerHTML=`
+      <div class="sc2"><div class="sn">${users.length}</div><div class="slb">Користувачів</div></div>
+      <div class="sc2"><div class="sn">${total}</div><div class="slb">Повідомлень</div></div>
+      <div class="sc2"><div class="sn">${chats}</div><div class="slb">Чатів</div></div>
+      <div class="sc2"><div class="sn">${users.filter(u=>u.banned).length}</div><div class="slb">Забанених</div></div>
+      <div class="sc2"><div class="sn">${users.filter(u=>u.muted).length}</div><div class="slb">Замучених</div></div>
+      <div class="sc2"><div class="sn">${users.filter(u=>u.verifiedBlue||u.verified).length}</div><div class="slb">Верифікованих</div></div>`;
+  },
+
+  async renderAdmMsgs() {
+    const c=document.getElementById('amsgs'); c.innerHTML='';
+    const ms=await DG('messages');
+    if(!ms.exists()){c.innerHTML='<div style="padding:11px;text-align:center;color:var(--text-muted);font-size:12px">Немає</div>';return;}
+    const all=[];
+    Object.entries(ms.val()).forEach(([key,chat])=>Object.entries(chat).forEach(([id,m])=>all.push({...m,key,id})));
+    all.sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,100).forEach(m=>{
+      const d=document.createElement('div'); d.style.cssText='padding:6px 9px;border-bottom:1px solid var(--border);font-size:12px';
+      d.innerHTML=`<span style="color:var(--primary);font-weight:600">@${m.from}</span> → <span style="color:#2ca5e0">@${m.to}</span> <span style="color:var(--text-muted);float:right">${m.time}</span><br><span>${m.deleted?'<i style="opacity:.5">Видалено</i>':(m.image?'🖼 Фото':m.text||'')}</span>${!m.deleted?` <span style="cursor:pointer;color:var(--danger)" onclick="A.admDel('${m.key}','${m.id}')">✕</span>`:''}`;
+      c.appendChild(d);
+    });
+  },
+
+  async admDel(k,id){await DU('messages/'+k+'/'+id,{deleted:true,text:'',image:''});this.renderAdmMsgs();if(this.ac)this.renderMsgs();},
+  async admClearAll(){if(!confirm('Видалити ВСІ повідомлення?'))return;await DR('messages');await this.log('vortex видалив всі повідомлення');this.renderAdmMsgs();if(this.ac){this._msgs={};this.renderMsgs();}},
+
+  async broadcast() {
+    const text=document.getElementById('btxt').value.trim(); if(!text)return alert('Введіть текст');
+    const tgt=document.getElementById('btgt').value, single=document.getElementById('bone').value.trim();
+    const time=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); let n=0;
+    for(const u of Object.values(this._users)){
+      if(u.username==='vortex')continue;
+      if(tgt==='ver'&&!u.verifiedBlue&&!u.verified)continue;
+      if(tgt==='one'&&u.username!==single)continue;
+      await DP('messages/'+this.ck('vortex',u.username),{from:'vortex',to:u.username,text:'📢 '+text,time,ts:Date.now(),read:false}); n++;
+    }
+    document.getElementById('btxt').value='';
+    await this.log('vortex розіслав: "'+text.substring(0,40)+'"');
+    alert('✅ Надіслано '+n+' користувачам');
+  },
+
+  async log(msg){await DP('logs',{t:new Date().toLocaleString(),m:msg,ts:Date.now()});},
+
+  async renderAdmLogs(){
+    const c=document.getElementById('alogs'); c.innerHTML='';
+    const s=await DG('logs');
+    if(!s.exists()){c.innerHTML='<div style="padding:7px;color:var(--text-muted)">Порожньо</div>';return;}
+    Object.values(s.val()).sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,200).forEach(l=>{const d=document.createElement('div');d.style.cssText='padding:4px 7px;border-bottom:1px solid var(--border)';d.innerHTML=`<span style="color:var(--text-muted)">[${l.t}]</span> ${l.m}`;c.appendChild(d);});
+  },
+
+  async clearLogs(){if(!confirm('Очистити логи?'))return;await DR('logs');this.renderAdmLogs();},
+
+  closeM(){document.querySelectorAll('.modal').forEach(m=>m.style.display='none');}
+};
+
+window.A=A;
+A.init();
 </script>
 </body>
 </html>
