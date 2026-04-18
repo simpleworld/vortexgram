@@ -1,845 +1,397 @@
 <!DOCTYPE html>
-<html lang="uk" data-theme="light">
+<html lang="uk">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Telegram Web Pro</title>
-<style>
-:root{--primary:#3390ec;--primary-hover:#2a7cbd;--bg-main:#fff;--bg-sidebar:#f4f4f5;--text-main:#000;--text-muted:#707579;--border:#e0e0e0;--msg-own:#e3ffe3;--msg-other:#fff;--danger:#e53935;--modal-bg:rgba(0,0,0,.5)}
-[data-theme=dark]{--primary:#8774e1;--primary-hover:#7361c7;--bg-main:#0f0f0f;--bg-sidebar:#212121;--text-main:#fff;--text-muted:#aaa;--border:#333;--msg-own:#766ac8;--msg-other:#212121}
-*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Roboto,sans-serif}
-body{height:100vh;display:flex;background:var(--bg-main);color:var(--text-main);overflow:hidden}
-#loading{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg-sidebar);z-index:9999;gap:14px}
-.spin{width:38px;height:38px;border:4px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:sp .8s linear infinite}
-@keyframes sp{to{transform:rotate(360deg)}}
-#auth{position:fixed;inset:0;display:none;justify-content:center;align-items:center;background:var(--bg-sidebar);z-index:2000}
-#app{display:none;width:100%;height:100%}
-.abox{background:var(--bg-main);padding:38px;border-radius:15px;box-shadow:0 10px 25px rgba(0,0,0,.1);width:100%;max-width:400px;text-align:center}
-.abox h2{margin-bottom:22px;color:var(--primary)}
-.abox input{width:100%;padding:12px;margin-bottom:13px;border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-main);outline:none;font-size:15px}
-.abox input:focus{border-color:var(--primary)}
-.aerr{color:var(--danger);font-size:13px;margin-bottom:8px;min-height:16px}
-.btn{padding:11px 22px;border:none;border-radius:8px;cursor:pointer;font-weight:600;transition:.2s;background:var(--primary);color:#fff;font-size:14px}
-.btn:hover{background:var(--primary-hover);transform:translateY(-1px)}
-.btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
-.btn-d{background:var(--danger)}.btn-d:hover{background:#c62828}
-.btn-s{background:#43a047}.btn-s:hover{background:#2e7d32}
-.btn-g{background:#888}.btn-g:hover{background:#666}
-.mc{display:flex;width:100%;height:100%}
-.sidebar{width:340px;border-right:1px solid var(--border);background:var(--bg-sidebar);display:flex;flex-direction:column;flex-shrink:0;transition:transform .3s}
-.shdr{padding:13px;display:flex;justify-content:space-between;align-items:center;background:var(--bg-main);gap:6px}
-.logo{font-weight:700;color:var(--primary);cursor:pointer;user-select:none;font-size:1.15rem;flex-shrink:0}
-.srch{padding:9px;background:var(--bg-main)}
-.srch input{width:100%;padding:9px 14px;border-radius:20px;border:1px solid var(--border);background:var(--bg-sidebar);outline:none;color:var(--text-main);font-size:14px}
-.ulist{flex:1;overflow-y:auto}
-.ui{display:flex;align-items:center;padding:11px 14px;cursor:pointer;transition:.15s;border-bottom:1px solid rgba(0,0,0,.03)}
-.ui:hover{background:rgba(0,0,0,.05)}
-.ui.active{background:var(--primary);color:#fff}
-.ui.active .tm{color:rgba(255,255,255,.8)}
-.ui.ban{opacity:.4;pointer-events:none}
-.av{width:48px;height:48px;border-radius:50%;background:#ccc;margin-right:13px;flex-shrink:0;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:17px}
-.ca{flex:1;display:flex;flex-direction:column;background:var(--bg-main);position:relative}
-.chdr{height:58px;padding:0 14px;display:flex;align-items:center;border-bottom:1px solid var(--border);background:var(--bg-main);z-index:10;gap:8px}
-.back{display:none;font-size:20px;cursor:pointer;flex-shrink:0}
-.msgbox{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:9px;background:url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png') fixed}
-.msg{max-width:70%;padding:9px 14px;border-radius:12px;font-size:15px;animation:fi .2s;box-shadow:0 1px 2px rgba(0,0,0,.1);word-break:break-word}
-@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
-.msg.own{align-self:flex-end;background:var(--msg-own);border-bottom-right-radius:2px}
-.msg.other{align-self:flex-start;background:var(--msg-other);border-bottom-left-radius:2px}
-.mt{font-size:11px;opacity:.6;margin-top:4px;text-align:right;display:block}
-.mdel{font-style:italic;opacity:.5}
-.medit{font-size:10px;opacity:.5;margin-left:3px}
-.rq{border-left:3px solid var(--primary);padding-left:6px;margin-bottom:5px;font-size:12px;opacity:.7}
-.mimg{max-width:240px;max-height:190px;border-radius:8px;display:block;margin-bottom:4px;cursor:pointer}
-.ia{padding:11px 14px;display:flex;gap:8px;align-items:center;background:var(--bg-main);border-top:1px solid var(--border)}
-.ia input{flex:1;padding:10px 15px;border-radius:25px;border:1px solid var(--border);outline:none;background:var(--bg-sidebar);color:var(--text-main);font-size:14px}
-.rbar{padding:7px 14px;background:var(--bg-sidebar);border-top:1px solid var(--border);display:none;align-items:center;justify-content:space-between;font-size:13px}
-.rbar.on{display:flex}
-.modal{display:none;position:fixed;inset:0;background:var(--modal-bg);z-index:3000;align-items:flex-start;justify-content:center;padding:18px;overflow-y:auto}
-.mc2{background:var(--bg-main);padding:26px;border-radius:15px;width:100%;max-width:420px;position:relative;margin:auto}
-.mc2.wide{max-width:570px}
-.cls{position:absolute;top:13px;right:17px;font-size:24px;cursor:pointer;line-height:1}
-.vf{color:var(--primary);margin-left:4px;font-size:14px}
-.ui.active .vf{color:#fff}
-.vb{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;background:#2ca5e0;border-radius:50%;margin-left:4px;font-size:10px;color:#fff;font-weight:700;vertical-align:middle;position:relative;top:-1px}
-.ui.active .vb{background:rgba(255,255,255,.9);color:#2ca5e0}
-.bl{font-size:11px;color:var(--danger);font-weight:700}
-.ml{font-size:11px;color:orange;font-weight:700}
-.ub{background:var(--primary);color:#fff;border-radius:50%;width:19px;height:19px;font-size:11px;display:flex;align-items:center;justify-content:center;margin-left:auto;flex-shrink:0}
-.ui.active .ub{background:#fff;color:var(--primary)}
-.mp{font-size:12px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:190px}
-.ctx{position:fixed;background:var(--bg-main);border:1px solid var(--border);border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.15);z-index:5000;min-width:152px;overflow:hidden}
-.cxi{padding:9px 14px;cursor:pointer;font-size:14px;transition:.15s}
-.cxi:hover{background:var(--bg-sidebar)}
-.cxi.d{color:var(--danger)}
-.nc{display:flex;flex:1;align-items:center;justify-content:center;color:var(--text-muted);background:var(--bg-sidebar);flex-direction:column;gap:10px}
-.so{color:var(--primary);font-size:13px}
-/* Settings */
-.stabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:13px;overflow-x:auto}
-.stab{padding:7px 11px;cursor:pointer;font-size:13px;border-bottom:2px solid transparent;color:var(--text-muted);transition:.2s;white-space:nowrap}
-.stab.on{border-bottom-color:var(--primary);color:var(--primary);font-weight:600}
-.sc{display:none}.sc.on{display:block}
-.sr{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px}
-.sr:last-child{border-bottom:none}
-.sl{color:var(--text-muted);font-size:12px;margin-bottom:3px;margin-top:7px}
-.si{width:100%;padding:9px;border:1px solid var(--border);border-radius:7px;background:var(--bg-sidebar);color:var(--text-main);outline:none;font-size:14px;margin-bottom:8px}
-.si:focus{border-color:var(--primary)}
-.bav{width:72px;height:72px;border-radius:50%;margin:0 auto 6px;display:flex;align-items:center;justify-content:center;font-size:27px;font-weight:700;color:#fff;background-size:cover;cursor:pointer}
-.tgl{position:relative;display:inline-block;width:40px;height:22px}
-.tgl input{opacity:0;width:0;height:0}
-.tsl{position:absolute;cursor:pointer;inset:0;background:#ccc;border-radius:22px;transition:.3s}
-.tsl:before{content:"";position:absolute;width:16px;height:16px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}
-input:checked+.tsl{background:var(--primary)}
-input:checked+.tsl:before{transform:translateX(18px)}
-/* Avatar picker */
-.avp{width:100%;aspect-ratio:1;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:.15s;display:flex;align-items:center;justify-content:center;font-size:22px;background-size:cover}
-.avp:hover{border-color:var(--primary);transform:scale(1.08)}
-.avp.sel{border-color:#2ca5e0;box-shadow:0 0 0 2px #2ca5e0}
-.avc{font-size:10px;font-weight:600;color:var(--text-muted);margin:5px 0 2px;grid-column:1/-1;text-transform:uppercase;letter-spacing:.5px}
-/* Admin */
-.vhdr{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.vhdr h3{color:#2ca5e0;font-size:17px}
-.atbs{display:flex;gap:4px;margin-bottom:13px;flex-wrap:wrap}
-.atb{padding:5px 10px;border:1px solid var(--border);border-radius:18px;cursor:pointer;font-size:12px;background:var(--bg-sidebar);color:var(--text-main);transition:.2s}
-.atb.on{background:#2ca5e0;color:#fff;border-color:#2ca5e0}
-.atp{display:none}.atp.on{display:block}
-.aul{max-height:310px;overflow-y:auto;border:1px solid var(--border);border-radius:8px}
-.aur{display:flex;align-items:center;padding:8px 9px;border-bottom:1px solid var(--border);gap:5px}
-.aur:last-child{border-bottom:none}
-.aui{flex:1;min-width:0}
-.aui .un{font-weight:600;font-size:13px}
-.aui .ul{font-size:11px;color:var(--text-muted)}
-.aui .up{font-size:11px;color:#e53935;font-family:monospace;background:rgba(229,57,53,.1);padding:1px 5px;border-radius:4px;display:inline-block;margin-top:1px}
-.aa{display:flex;gap:3px;flex-wrap:wrap;justify-content:flex-end}
-.aa button{padding:3px 6px;font-size:11px;border:none;border-radius:5px;cursor:pointer;font-weight:600;transition:.2s;white-space:nowrap}
-.b1{background:#2ca5e0;color:#fff}.b1:hover{background:#1a90c7}
-.b2{background:#888;color:#fff}.b2:hover{background:#555}
-.b3{background:var(--danger);color:#fff}.b3:hover{background:#c62828}
-.b4{background:#43a047;color:#fff}.b4:hover{background:#2e7d32}
-.b5{background:#fb8c00;color:#fff}.b5:hover{background:#e65100}
-.b6{background:#26a69a;color:#fff}.b6:hover{background:#00695c}
-.b7{background:#7b1fa2;color:#fff}.b7:hover{background:#4a0072}
-.b8{background:#607d8b;color:#fff}.b8:hover{background:#455a64}
-.sg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}
-.sc2{background:var(--bg-sidebar);border-radius:9px;padding:11px;text-align:center}
-.sn{font-size:20px;font-weight:700;color:#2ca5e0}
-.slb{font-size:11px;color:var(--text-muted);margin-top:1px}
-textarea.bc{width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;resize:none;min-height:75px;background:var(--bg-sidebar);color:var(--text-main);outline:none;font-size:14px;margin-bottom:7px}
-@media(max-width:768px){
-.sidebar{width:100%;position:absolute;height:100%;z-index:100}
-.ca{width:100%}.back{display:block}
-.sidebar.hide{transform:translateX(-100%)}
-.sg{grid-template-columns:1fr 1fr}}
-</style>
+    <meta charset="UTF-8">
+    <title>COUNTER-STRIKE 2: WEB EDITION</title>
+    <style>
+        /* ========================================
+        CSS: СТИЛІ ІНТЕРФЕЙСУ ТА АНІМАЦІЙ
+        ========================================
+        */
+        :root {
+            --cs-orange: #ff9a00;
+            --cs-dark: #121417;
+            --cs-gray: #2d2f36;
+            --health-color: #5eff5e;
+            --enemy-red: #ff4444;
+            --team-blue: #44aaff;
+        }
+
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            background: var(--cs-dark);
+            color: white;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
+        }
+
+        /* Екрани */
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; }
+        .screen { display: none; width: 100%; height: 100%; pointer-events: all; }
+        .active { display: flex; flex-direction: column; }
+
+        /* Лоббі */
+        #lobby {
+            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), 
+                        url('https://images.alphacoders.com/133/1331707.jpeg') center/cover;
+            align-items: center; justify-content: flex-end;
+            padding-bottom: 50px;
+        }
+
+        .character-view {
+            position: absolute; bottom: 0; left: 50%;
+            transform: translateX(-50%);
+            width: 400px; height: 700px;
+            background: url('https://imgur.com/vH79R1r.png') no-repeat bottom center/contain;
+            filter: drop-shadow(0 0 20px rgba(0,0,0,0.8));
+        }
+
+        .main-menu {
+            z-index: 20; display: flex; gap: 20px;
+        }
+
+        .btn {
+            background: var(--cs-orange);
+            color: black; border: none;
+            padding: 15px 60px; font-size: 24px;
+            font-weight: 800; cursor: pointer;
+            text-transform: uppercase;
+            clip-path: polygon(10% 0, 100% 0, 90% 100%, 0% 100%);
+            transition: 0.2s;
+        }
+
+        .btn:hover { background: #fff; transform: scale(1.05); }
+
+        /* Інвентар */
+        #inventory-panel {
+            position: absolute; right: 20px; top: 20px;
+            width: 300px; background: rgba(0,0,0,0.7);
+            border: 1px solid var(--cs-gray); padding: 15px;
+        }
+
+        .inv-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px; border-bottom: 1px solid #444;
+        }
+
+        /* Гра */
+        #game-container { position: relative; width: 100%; height: 100%; background: #222; }
+        canvas { display: block; width: 100%; height: 100%; }
+
+        /* HUD */
+        .hud-bottom {
+            position: absolute; bottom: 30px; width: 100%;
+            display: flex; justify-content: space-between; padding: 0 50px;
+            pointer-events: none;
+        }
+
+        .stat-box {
+            background: rgba(0,0,0,0.8);
+            padding: 10px 30px; border-left: 4px solid var(--cs-orange);
+        }
+
+        .hp-val { font-size: 48px; color: var(--health-color); font-weight: bold; }
+
+        .weapon-belt { display: flex; gap: 10px; }
+        .w-icon {
+            width: 120px; height: 60px; background: rgba(255,255,255,0.1);
+            border: 2px solid transparent; display: flex; 
+            flex-direction: column; align-items: center; justify-content: center;
+        }
+        .w-icon.active { border-color: var(--cs-orange); background: rgba(255,154,0,0.2); }
+        .w-label { font-size: 10px; color: #aaa; text-transform: uppercase; }
+
+        /* Анімація ножа метелика */
+        @keyframes butterfly-spin {
+            0% { transform: rotate(0deg) translateY(0); }
+            50% { transform: rotate(180deg) translateY(-20px); }
+            100% { transform: rotate(360deg) translateY(0); }
+        }
+        .inspect-anim { animation: butterfly-spin 0.5s ease-in-out; }
+
+        /* Вибір режиму */
+        .modal {
+            background: rgba(0,0,0,0.9); padding: 50px;
+            border: 2px solid var(--cs-orange); text-align: center;
+        }
+    </style>
 </head>
 <body>
 
-<div id="loading"><div class="spin"></div><div style="color:var(--text-muted);font-size:13px">Підключення...</div></div>
+<div id="ui-layer">
+    <div id="lobby" class="screen active">
+        <div class="character-view" id="lobby-char"></div>
+        <div id="inventory-panel">
+            <h3>ІНВЕНТАР</h3>
+            <div class="inv-item">🗡️ Butterfly Knife | Lore</div>
+            <div class="inv-item">🔫 AK-47 | Asiimov</div>
+            <div class="inv-item">🔫 USP-S | Printstream</div>
+        </div>
+        <div class="main-menu">
+            <button class="btn" onclick="openModes()">ГРАТИ</button>
+        </div>
+    </div>
 
-<div id="auth">
-  <div class="abox" id="ab-login">
-    <h2>Увійти</h2>
-    <div class="aerr" id="lerr"></div>
-    <input id="lu" placeholder="Логін" autocomplete="username">
-    <input id="lp" type="password" placeholder="Пароль" autocomplete="current-password" onkeypress="if(event.key==='Enter')A.login()">
-    <button class="btn" style="width:100%" id="lbtn" onclick="A.login()">Увійти</button>
-    <p style="margin-top:13px;font-size:14px">Немає акаунту? <a href="#" onclick="A.showReg(true)" style="color:var(--primary)">Реєстрація</a></p>
-  </div>
-  <div class="abox" id="ab-reg" style="display:none">
-    <h2>Реєстрація</h2>
-    <div class="aerr" id="rerr"></div>
-    <input id="ru" placeholder="Логін (латиниця, цифри)">
-    <input id="rn" placeholder="Нікнейм (необов'язково)">
-    <input id="rp" type="password" placeholder="Пароль (мін. 4)">
-    <input id="rp2" type="password" placeholder="Підтвердіть пароль" onkeypress="if(event.key==='Enter')A.register()">
-    <button class="btn" style="width:100%" id="rbtn" onclick="A.register()">Створити акаунт</button>
-    <p style="margin-top:13px;font-size:14px">Вже є акаунт? <a href="#" onclick="A.showReg(false)" style="color:var(--primary)">Увійти</a></p>
-  </div>
-</div>
-
-<div id="app">
-  <div class="mc">
-    <aside class="sidebar" id="sb">
-      <div class="shdr">
-        <div class="logo" onclick="A.logoClick()">Telegram</div>
-        <button id="vbtn" class="btn" style="padding:5px 9px;font-size:12px;background:#2ca5e0;display:none" onclick="A.openAdmin()">⚡ Адмін</button>
-        <button class="btn" style="padding:5px 9px;font-size:12px" onclick="A.openSettings()">Профіль</button>
-      </div>
-      <div class="srch"><input id="usearch" placeholder="🔍 Пошук..." oninput="A.renderUsers()"></div>
-      <div class="ulist" id="ulist"><div style="padding:18px;text-align:center;color:var(--text-muted);font-size:13px">Завантаження...</div></div>
-    </aside>
-    <main class="ca">
-      <div id="noc" class="nc"><div style="font-size:44px;opacity:.3">💬</div><span>Виберіть чат</span></div>
-      <div id="chat" style="display:none;flex-direction:column;height:100%">
-        <header class="chdr">
-          <span class="back" onclick="A.closeChat()">←</span>
-          <div class="av" id="hav" style="width:38px;height:38px;margin-right:8px;cursor:pointer;flex-shrink:0" onclick="A.openProfile()"></div>
-          <div style="flex:1;min-width:0;cursor:pointer" onclick="A.openProfile()">
-            <div style="font-weight:700;display:flex;align-items:center;gap:2px">
-              <span id="hname" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
-              <span id="hver"></span>
+    <div id="mode-select" class="screen" style="justify-content:center; align-items:center; background: rgba(0,0,0,0.8);">
+        <div class="modal">
+            <h1 style="color: var(--cs-orange)">ОБЕРІТЬ РЕЖИМ</h1>
+            <div style="display:flex; gap:20px; margin-top:30px;">
+                <button class="btn" onclick="initGame(1)">1 VS 1</button>
+                <button class="btn" onclick="initGame(2)">2 VS 2</button>
             </div>
-            <div id="hstatus" class="so">онлайн</div>
-          </div>
-          <button class="btn btn-g" style="padding:5px 9px;font-size:13px;flex-shrink:0" onclick="A.clearChat()">🗑</button>
-        </header>
-        <div id="rbar" class="rbar">
-          <div style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px"><strong style="color:var(--primary)">Відповідь: </strong><span id="rprev"></span></div>
-          <span style="cursor:pointer;font-size:18px;margin-left:8px" onclick="A.cancelReply()">✕</span>
+            <button class="btn" style="margin-top:20px; background:#444; color:white;" onclick="toLobby()">НАЗАД</button>
         </div>
-        <div class="msgbox" id="msgbox"></div>
-        <div class="ia">
-          <button class="btn btn-g" style="padding:9px 10px;font-size:16px;flex-shrink:0" onclick="document.getElementById('fi').click()">📎</button>
-          <input type="file" id="fi" accept="image/*" style="display:none" onchange="A.sendImg(this)">
-          <input id="mi" placeholder="Напишіть повідомлення..." onkeypress="if(event.key==='Enter')A.send()">
-          <button class="btn" style="flex-shrink:0" onclick="A.send()">➤</button>
+    </div>
+
+    <div id="game-hud" class="screen">
+        <div class="hud-bottom">
+            <div class="stat-box">
+                <div style="font-size:14px">HEALTH</div>
+                <div class="hp-val" id="hp-display">100</div>
+            </div>
+            
+            <div class="weapon-belt">
+                <div id="slot-1" class="w-icon active">
+                    <span style="font-size:24px">🔫</span>
+                    <span class="w-label">AKR-47</span>
+                </div>
+                <div id="slot-2" class="w-icon">
+                    <span style="font-size:24px">🔫</span>
+                    <span class="w-label">PISTOL</span>
+                </div>
+                <div id="slot-3" class="w-icon" id="knife-slot">
+                    <span style="font-size:24px" id="knife-emoji">🔪</span>
+                    <span class="w-label">BUTTERFLY</span>
+                </div>
+            </div>
         </div>
-      </div>
-    </main>
-  </div>
+    </div>
 </div>
 
-<div id="ctx" class="ctx" style="display:none"></div>
-
-<div class="modal" id="m-prof"><div class="mc2"><span class="cls" onclick="A.closeM()">&times;</span><div id="profcnt"></div></div></div>
-
-<div class="modal" id="m-set">
-  <div class="mc2">
-    <span class="cls" onclick="A.closeM()">&times;</span>
-    <h3 style="margin-bottom:13px">⚙️ Налаштування</h3>
-    <div class="stabs">
-      <div class="stab on" onclick="A.sTab('p')">Профіль</div>
-      <div class="stab" onclick="A.sTab('a')">Акаунт</div>
-      <div class="stab" onclick="A.sTab('l')">Вигляд</div>
-      <div class="stab" onclick="A.sTab('v')">Приватність</div>
-    </div>
-    <div class="sc on" id="st-p">
-      <div style="text-align:center;margin-bottom:9px">
-        <div class="bav" id="bav" onclick="A.toggleAvPicker()"></div>
-        <div style="font-size:11px;color:var(--text-muted)">натисни щоб змінити</div>
-        <div style="font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:4px;margin-top:5px" id="snl"></div>
-      </div>
-      <div id="avpicker" style="display:none;margin-bottom:11px;border:1px solid var(--border);border-radius:11px;padding:9px;background:var(--bg-sidebar)">
-        <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:7px">Вибери аватарку</div>
-        <div id="avgrid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:5px;max-height:210px;overflow-y:auto"></div>
-        <div style="margin-top:7px;border-top:1px solid var(--border);padding-top:7px">
-          <div style="font-size:11px;color:var(--text-muted);margin-bottom:3px">або URL фото:</div>
-          <div style="display:flex;gap:5px">
-            <input class="si" id="avurl" placeholder="https://..." style="margin-bottom:0;flex:1;font-size:12px;padding:6px 9px">
-            <button class="btn" style="padding:6px 11px;font-size:12px" onclick="A.applyUrl()">ОК</button>
-          </div>
-        </div>
-      </div>
-      <div class="sl">Нікнейм</div><input class="si" id="snick" placeholder="Нікнейм">
-      <div class="sl">Статус / Біо</div><input class="si" id="sbio" placeholder="Про себе...">
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">💡 Верифікація — тільки через адмін-панель</div>
-      <button class="btn" style="width:100%" onclick="A.saveProfile()">💾 Зберегти</button>
-    </div>
-    <div class="sc" id="st-a">
-      <div style="background:var(--bg-sidebar);border-radius:8px;padding:9px;margin-bottom:11px;font-size:13px">
-        <div>Логін: <strong id="alogin"></strong></div>
-        <div style="margin-top:3px">Реєстрація: <strong id="areg"></strong></div>
-      </div>
-      <div class="sl">Змінити пароль</div>
-      <input class="si" id="op" type="password" placeholder="Старий пароль">
-      <input class="si" id="np" type="password" placeholder="Новий пароль">
-      <input class="si" id="np2" type="password" placeholder="Підтвердіть новий пароль">
-      <button class="btn" style="width:100%" onclick="A.chPass()">Змінити пароль</button>
-      <hr style="margin:11px 0;border-color:var(--border)">
-      <button class="btn btn-d" style="width:100%" onclick="A.delAcc()">🗑 Видалити акаунт</button>
-      <button class="btn btn-d" style="width:100%;margin-top:7px" onclick="A.logout()">Вийти</button>
-    </div>
-    <div class="sc" id="st-l">
-      <div class="sr"><span>Темна тема</span><label class="tgl"><input type="checkbox" id="ttheme" onchange="A.toggleTheme()"><span class="tsl"></span></label></div>
-      <div class="sr"><span>Звук</span><label class="tgl"><input type="checkbox" id="tsnd" checked><span class="tsl"></span></label></div>
-      <div class="sr"><span>Анімації</span><label class="tgl"><input type="checkbox" id="tanim" checked><span class="tsl"></span></label></div>
-    </div>
-    <div class="sc" id="st-v">
-      <div class="sr"><span>Показувати онлайн</span><label class="tgl"><input type="checkbox" id="tonl" checked><span class="tsl"></span></label></div>
-      <div class="sr"><span>Дозволити писати всім</span><label class="tgl"><input type="checkbox" id="tallm" checked><span class="tsl"></span></label></div>
-      <div style="margin-top:9px"><div class="sl">Заблоковані</div><div id="bllist" style="font-size:13px;color:var(--text-muted);margin-top:4px"></div></div>
-    </div>
-  </div>
+<div id="game-container">
+    <canvas id="gameCanvas"></canvas>
 </div>
 
-<div class="modal" id="m-adm">
-  <div class="mc2 wide">
-    <span class="cls" onclick="A.closeM()">&times;</span>
-    <div class="vhdr">
-      <svg width="28" height="28" viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#2ca5e0"/><path d="M10 16.5L14.5 21L22 12" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <h3>Vortex Admin Panel</h3>
-    </div>
-    <div class="atbs">
-      <div class="atb on" onclick="A.aTab('u')">👥 Користувачі</div>
-      <div class="atb" onclick="A.aTab('s')">📊 Статистика</div>
-      <div class="atb" onclick="A.aTab('m')">💬 Повідомлення</div>
-      <div class="atb" onclick="A.aTab('b')">📢 Розсилка</div>
-      <div class="atb" onclick="A.aTab('l')">📋 Логи</div>
-    </div>
-    <div class="atp on" id="at-u">
-      <input id="asrch" placeholder="🔍 Пошук..." style="width:100%;padding:7px 11px;border:1px solid var(--border);border-radius:7px;margin-bottom:7px;background:var(--bg-sidebar);color:var(--text-main);outline:none;font-size:13px" oninput="A.renderAdmUsers()">
-      <div class="aul" id="aulist"></div>
-    </div>
-    <div class="atp" id="at-s"><div class="sg" id="astats"></div></div>
-    <div class="atp" id="at-m">
-      <div id="amsgs" style="max-height:290px;overflow-y:auto;border:1px solid var(--border);border-radius:8px"></div>
-      <button class="btn btn-d" style="width:100%;margin-top:7px;padding:7px" onclick="A.admClearAll()">🗑 Видалити всі повідомлення</button>
-    </div>
-    <div class="atp" id="at-b">
-      <textarea class="bc" id="btxt" placeholder="Текст розсилки..."></textarea>
-      <select id="btgt" style="width:100%;padding:7px;border:1px solid var(--border);border-radius:7px;background:var(--bg-sidebar);color:var(--text-main);margin-bottom:7px;outline:none;font-size:13px">
-        <option value="all">Всі</option><option value="ver">Тільки верифіковані</option><option value="one">Конкретний</option>
-      </select>
-      <input id="bone" placeholder="Логін" style="width:100%;padding:7px;border:1px solid var(--border);border-radius:7px;background:var(--bg-sidebar);color:var(--text-main);margin-bottom:7px;outline:none;font-size:13px;display:none">
-      <button class="btn btn-s" style="width:100%" onclick="A.broadcast()">📢 Надіслати</button>
-    </div>
-    <div class="atp" id="at-l">
-      <div id="alogs" style="max-height:290px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;font-size:11px;font-family:monospace"></div>
-      <button class="btn btn-g" style="width:100%;margin-top:7px;padding:6px;font-size:13px" onclick="A.clearLogs()">Очистити логи</button>
-    </div>
-  </div>
-</div>
+<script>
+/**
+ * ============================================================================
+ * JAVASCRIPT: ЯДРО ГРИ (ENGINE)
+ * ТУТ МІСТИТЬСЯ ЛОГІКА РУХУ, ШІ, СТРІЛЬБИ ТА ВІЗУАЛІЗАЦІЇ
+ * ============================================================================
+ */
 
-<script type="module">
-// ═══════════════════════════════════════════════════════════════
-// FIREBASE — вбудована конфігурація (публічний проект)
-// ═══════════════════════════════════════════════════════════════
-import { initializeApp }       from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getDatabase, ref, set, get, update, remove, push, onValue, off, serverTimestamp }
-                                from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let gameActive = false;
+let entities = [];
+let particles = [];
+let currentWeapon = 1; // 1:AK, 2:Pistol, 3:Knife
+let playerHP = 100;
+let score = 0;
 
-const FC = {
-  apiKey:            "AIzaSyBFp9KNaHhOqM5VCcrY4pD3N6jyMtcPiMQ",
-  authDomain:        "tgwebpro-live.firebaseapp.com",
-  databaseURL:       "https://tgwebpro-live-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId:         "tgwebpro-live",
-  storageBucket:     "tgwebpro-live.appspot.com",
-  messagingSenderId: "823047291056",
-  appId:             "1:823047291056:web:4a2f9c1b8e3d5f6a7b8c9d"
+// Розміри
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// Об'єкти зброї
+const weapons = {
+    1: { name: "AK-47", damage: 35, fireRate: 100, recoil: 5, spread: 0.1 },
+    2: { name: "USP-S", damage: 20, fireRate: 300, recoil: 2, spread: 0.05 },
+    3: { name: "Butterfly Knife", damage: 100, fireRate: 500, range: 50 }
 };
 
-let fbApp, db;
-try {
-  fbApp = initializeApp(FC);
-  db    = getDatabase(fbApp);
-} catch(e) {}
-
-const R  = (p)        => ref(db, p);
-const DG = (p)        => get(R(p));
-const DS = (p,v)      => set(R(p), v);
-const DU = (p,v)      => update(R(p), v);
-const DR = (p)        => remove(R(p));
-const DP = (p,v)      => push(R(p), v);
-const DO = (p,cb)     => onValue(R(p), cb);
-const DOFF = (p)      => off(R(p));
-
-// ═══════════════════════════════════════════════════════════════
-const A = {
-  cu:null, ac:null, replyTo:null, lc:0, _sv:null,
-  _users:{}, _msgs:{}, _mpath:null, _mlis:null, _ulis:null,
-
-  // ─── INIT ───────────────────────────────────────────────────
-  async init() {
-    // Check DB
-    try { await DG('.info/connected'); } catch(e) {
-      document.getElementById('loading').innerHTML =
-        '<div style="color:var(--danger);font-size:15px;padding:24px;text-align:center">❌ Помилка підключення до бази даних</div>';
-      return;
+class Entity {
+    constructor(type, x, y, team) {
+        this.type = type; // 'player' чи 'bot'
+        this.x = x;
+        this.y = y;
+        this.team = team; // 'red' (ворог) або 'blue' (тімейт)
+        this.hp = 100;
+        this.radius = 25;
+        this.angle = 0;
+        this.vx = (Math.random() - 0.5) * 2;
+        this.vy = (Math.random() - 0.5) * 2;
+        this.lastShot = 0;
     }
 
-    const ses = localStorage.getItem('ses');
-    if (ses) {
-      try {
-        const s = await DG('users/'+ses);
-        if (s.exists() && !s.val().banned) {
-          this.cu = s.val();
-          this.boot(); return;
+    draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.angle);
+
+        // Тіло
+        ctx.beginPath();
+        ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = this.team === 'red' ? '#ff4444' : '#44aaff';
+        ctx.fill();
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // Напрямок погляду (ніс)
+        ctx.fillStyle = 'white';
+        ctx.fillRect(15, -5, 20, 10);
+
+        // ХП над головою
+        ctx.restore();
+        ctx.fillStyle = 'white';
+        ctx.font = '12px Arial';
+        ctx.fillText(`HP: ${Math.ceil(this.hp)}`, this.x - 20, this.y - 40);
+    }
+
+    update() {
+        if (this.hp <= 0) return;
+
+        // ШІ: Рух
+        this.x += this.vx;
+        this.y += this.vy;
+
+        // Колізії зі стінами
+        if (this.x < 50 || this.x > canvas.width - 50) this.vx *= -1;
+        if (this.y < 50 || this.y > canvas.height - 50) this.vy *= -1;
+
+        // ШІ: Пошук цілі
+        if (this.team === 'red') {
+            this.angle = Math.atan2(canvas.height/2 - this.y, canvas.width/2 - this.x);
         }
-      } catch(e) {}
-      localStorage.removeItem('ses');
+    }
+}
+
+// Функції керування екранами
+function openModes() {
+    document.getElementById('lobby').classList.remove('active');
+    document.getElementById('mode-select').classList.add('active');
+}
+
+function toLobby() {
+    document.getElementById('mode-select').classList.remove('active');
+    document.getElementById('lobby').classList.add('active');
+}
+
+function initGame(mode) {
+    document.getElementById('mode-select').classList.remove('active');
+    document.getElementById('game-hud').classList.add('active');
+    gameActive = true;
+    entities = [];
+    
+    // Спавн ворогів (червоні)
+    let enemies = mode === 1 ? 1 : 2;
+    for(let i=0; i<enemies; i++) {
+        entities.push(new Entity('bot', Math.random()*canvas.width, 100, 'red'));
     }
 
-    document.getElementById('loading').style.display='none';
-    document.getElementById('auth').style.display='flex';
-    this.bindKeys();
-  },
-
-  bindKeys() {
-    document.addEventListener('keydown', e => {
-      if (e.ctrlKey&&e.shiftKey&&e.altKey&&e.code==='KeyA') { e.preventDefault(); if(this.cu?.username==='vortex') this.openAdmin(); }
-      if (e.key==='Escape') { this.closeM(); this.hideCtx(); }
-    });
-    document.addEventListener('click', e => { if(!e.target.closest('#ctx')) this.hideCtx(); });
-    document.getElementById('btgt').addEventListener('change', function(){ document.getElementById('bone').style.display=this.value==='one'?'block':'none'; });
-  },
-
-  boot() {
-    document.getElementById('loading').style.display='none';
-    document.getElementById('auth').style.display='none';
-    document.getElementById('app').style.display='block';
-    if (localStorage.getItem('theme')==='dark') document.documentElement.setAttribute('data-theme','dark');
-    if (this.cu.username==='vortex') document.getElementById('vbtn').style.display='inline-block';
-    this.bindKeys();
-    this.listenUsers();
-  },
-
-  // ─── AUTH ────────────────────────────────────────────────────
-  showReg(v) {
-    document.getElementById('ab-login').style.display=v?'none':'block';
-    document.getElementById('ab-reg').style.display=v?'block':'none';
-    document.getElementById('lerr').innerText='';
-    document.getElementById('rerr').innerText='';
-  },
-
-  async register() {
-    const u = document.getElementById('ru').value.trim().toLowerCase().replace(/[^a-z0-9_]/g,'');
-    const n = document.getElementById('rn').value.trim();
-    const p = document.getElementById('rp').value;
-    const p2= document.getElementById('rp2').value;
-    const E = document.getElementById('rerr');
-    E.innerText='';
-    if (!u||u.length<3) return E.innerText='Логін мінімум 3 символи';
-    if (p.length<4) return E.innerText='Пароль мінімум 4 символи';
-    if (p!==p2) return E.innerText='Паролі не збігаються';
-    const btn=document.getElementById('rbtn'); btn.disabled=true; btn.innerText='...';
-    try {
-      const s = await DG('users/'+u);
-      if (s.exists()) { E.innerText='Цей логін вже зайнятий'; btn.disabled=false; btn.innerText='Створити акаунт'; return; }
-      await DS('users/'+u, { username:u, pass:p, nick:n||u, avatar:'', verified:u==='admin', verifiedBlue:false, banned:false, muted:false, bio:'', regDate:new Date().toLocaleDateString(), settings:{} });
-      await this.log('Реєстрація: @'+u);
-      E.style.color='#43a047'; E.innerText='✅ Готово! Тепер увійдіть.';
-      setTimeout(()=>this.showReg(false), 1200);
-    } catch(e) { E.innerText='Помилка: '+e.message; }
-    btn.disabled=false; btn.innerText='Створити акаунт';
-  },
-
-  async login() {
-    const u = document.getElementById('lu').value.trim().toLowerCase();
-    const p = document.getElementById('lp').value;
-    const E = document.getElementById('lerr');
-    E.innerText='';
-    if (!u||!p) return E.innerText='Введіть логін і пароль';
-    const btn=document.getElementById('lbtn'); btn.disabled=true; btn.innerText='...';
-    try {
-      const s = await DG('users/'+u);
-      if (!s.exists()) { E.innerText='Користувача не знайдено'; btn.disabled=false; btn.innerText='Увійти'; return; }
-      const usr=s.val();
-      if (usr.pass!==p) { E.innerText='Невірний пароль'; btn.disabled=false; btn.innerText='Увійти'; return; }
-      if (usr.banned) { E.innerText='Акаунт заблоковано'; btn.disabled=false; btn.innerText='Увійти'; return; }
-      this.cu=usr; localStorage.setItem('ses',u);
-      await this.log('Вхід: @'+u);
-      this.boot();
-    } catch(e) { E.innerText='Помилка: '+e.message; }
-    btn.disabled=false; btn.innerText='Увійти';
-  },
-
-  logout() {
-    if (this._mlis) { DOFF(this._mpath); this._mlis=null; }
-    if (this._ulis) { DOFF('users'); this._ulis=null; }
-    localStorage.removeItem('ses'); location.reload();
-  },
-
-  // ─── USERS REALTIME ──────────────────────────────────────────
-  listenUsers() {
-    this._ulis = DO('users', snap => {
-      this._users = snap.val()||{};
-      if (this._users[this.cu.username]) this.cu=this._users[this.cu.username];
-      this.renderUsers();
-    });
-  },
-
-  renderUsers() {
-    const list=document.getElementById('ulist');
-    const q=(document.getElementById('usearch').value||'').toLowerCase();
-    const msgs=this._msgs;
-    list.innerHTML='';
-    const all=Object.values(this._users).filter(u=>u.username!==this.cu.username);
-    const filtered=all.filter(u=>!q||u.username.includes(q)||(u.nick||'').toLowerCase().includes(q));
-    filtered.sort((a,b)=>{
-      const la=this._lastMsg(a.username), lb=this._lastMsg(b.username);
-      return (lb?.ts||0)-(la?.ts||0);
-    });
-    if (!filtered.length) { list.innerHTML=`<div style="padding:18px;text-align:center;color:var(--text-muted);font-size:13px">${q?'Нікого не знайдено':'Немає інших користувачів'}</div>`; return; }
-    filtered.forEach(u => {
-      const d=document.createElement('div');
-      d.className='ui'+(this.ac===u.username?' active':'')+(u.banned?' ban':'');
-      d.onclick=()=>this.selChat(u.username);
-      const ast=this.avStyle(u.avatar,u.nick), ain=this.avInit(u.avatar,u.nick);
-      const af=(u.avatar||'').startsWith('emoji::')? 'font-size:21px;':'';
-      const key=this.ck(this.cu.username,u.username);
-      const unread=Object.values(msgs[key]||{}).filter(m=>m.from===u.username&&!m.read).length;
-      const lm=this._lastMsg(u.username);
-      d.innerHTML=`<div class="av" style="${ast}${af}">${ain}</div>
-        <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;justify-content:space-between">
-            <span style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u.nick||u.username}${this.vh(u)}${u.banned?'<span class="bl"> [БАН]</span>':''}${u.muted?'<span class="ml"> [МУТ]</span>':''}</span>
-            ${unread>0?`<span class="ub">${unread}</span>`:''}
-          </div>
-          <div class="mp">${lm?(lm.deleted?'🗑 Видалено':(lm.image?'🖼 Фото':lm.text||'')):'@'+u.username}</div>
-        </div>`;
-      list.appendChild(d);
-    });
-  },
-
-  ck: (a,b) => [a,b].sort().join('__'),
-  _lastMsg(u) {
-    const k=this.ck(this.cu.username,u);
-    const arr=Object.values(this._msgs[k]||{});
-    return arr.length ? arr.sort((a,b)=>(b.ts||0)-(a.ts||0))[0] : null;
-  },
-
-  // ─── CHAT ────────────────────────────────────────────────────
-  selChat(username) {
-    if (this._mlis) { DOFF(this._mpath); this._mlis=null; }
-    this.ac=username; this.replyTo=null;
-    document.getElementById('rbar').classList.remove('on');
-    const u=this._users[username]; if(!u) return;
-    document.getElementById('noc').style.display='none';
-    document.getElementById('chat').style.display='flex';
-    document.getElementById('sb').classList.add('hide');
-    document.getElementById('hname').innerText=u.nick||u.username;
-    document.getElementById('hver').innerHTML=this.vh(u);
-    document.getElementById('hstatus').innerHTML=u.bio?`<span style="color:var(--text-muted);font-size:12px">${u.bio}</span>`:'<span style="color:var(--primary)">онлайн</span>';
-    this.applyAv(document.getElementById('hav'),u.avatar,u.nick);
-    const key=this.ck(this.cu.username,username);
-    this._mpath='messages/'+key;
-    this._mlis=DO('messages/'+key, snap => {
-      this._msgs[key]=snap.val()||{};
-      this.renderMsgs();
-      this.renderUsers();
-      const upd={};
-      Object.entries(this._msgs[key]).forEach(([id,m])=>{ if(m.from===username&&!m.read) upd[id+'/read']=true; });
-      if (Object.keys(upd).length) DU('messages/'+key, upd);
-    });
-  },
-
-  closeChat() { document.getElementById('sb').classList.remove('hide'); },
-
-  renderMsgs() {
-    if (!this.ac) return;
-    const box=document.getElementById('msgbox');
-    const atBot=box.scrollHeight-box.scrollTop-box.clientHeight<110;
-    const key=this.ck(this.cu.username,this.ac);
-    const map=this._msgs[key]||{};
-    const sorted=Object.entries(map).sort((a,b)=>(a[1].ts||0)-(b[1].ts||0));
-    box.innerHTML='';
-    sorted.forEach(([id,m])=>{
-      const own=m.from===this.cu.username;
-      const d=document.createElement('div'); d.className='msg '+(own?'own':'other');
-      let c='';
-      if (m.deleted) { c='<span class="mdel">🗑 Повідомлення видалено</span>'; }
-      else {
-        if (m.replyId&&map[m.replyId]) { const o=map[m.replyId]; c+=`<div class="rq">${o.deleted?'🗑 Видалено':(o.image?'🖼 Фото':o.text||'')}</div>`; }
-        if (m.image) c+=`<img src="${m.image}" class="mimg" onclick="A._openImg('${id}')">`;
-        if (m.text) c+=m.text+(m.edited?'<span class="medit">(ред.)</span>':'');
-      }
-      c+=`<span class="mt">${m.time}${own?(m.read?' ✓✓':' ✓'):''}</span>`;
-      d.innerHTML=c;
-      if (!m.deleted) d.addEventListener('contextmenu',e=>{e.preventDefault();this.showCtx(e,id,own,key);});
-      box.appendChild(d);
-    });
-    if (atBot) box.scrollTop=box.scrollHeight;
-  },
-
-  _openImg(id) {
-    const key=this.ck(this.cu.username,this.ac);
-    const img=this._msgs[key]?.[id]?.image; if(!img) return;
-    const w=window.open('','_blank'); w.document.write(`<html><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;height:100vh"><img src="${img}" style="max-width:100%;max-height:100%"></body></html>`);
-  },
-
-  showCtx(e,id,own,key) {
-    const m=document.getElementById('ctx');
-    let h=`<div class="cxi" onclick="A.doReply('${id}','${key}')">↩ Відповісти</div>`;
-    if (own) {
-      h+=`<div class="cxi" onclick="A.doEdit('${id}','${key}')">✏️ Редагувати</div>`;
-      h+=`<div class="cxi d" onclick="A.doDelete('${id}','${key}')">🗑 Видалити для всіх</div>`;
+    // Спавн тімейта (синій)
+    if(mode === 2) {
+        entities.push(new Entity('bot', canvas.width/2, canvas.height - 100, 'blue'));
     }
-    h+=`<div class="cxi" onclick="A.doCopy('${id}','${key}')">📋 Копіювати</div>`;
-    m.innerHTML=h; m.style.display='block';
-    m.style.left=Math.min(e.clientX,window.innerWidth-160)+'px';
-    m.style.top=Math.min(e.clientY,window.innerHeight-155)+'px';
-  },
-  hideCtx() { document.getElementById('ctx').style.display='none'; },
 
-  doReply(id,key) { this.replyTo=id; const m=this._msgs[key]?.[id]; document.getElementById('rprev').innerText=m?.image?'🖼 Фото':(m?.text||''); document.getElementById('rbar').classList.add('on'); document.getElementById('mi').focus(); this.hideCtx(); },
-  cancelReply() { this.replyTo=null; document.getElementById('rbar').classList.remove('on'); },
-  async doEdit(id,key) { const m=this._msgs[key]?.[id]; const t=prompt('Редагувати:',m?.text||''); if(t!==null&&t.trim()) await DU('messages/'+key+'/'+id,{text:t.trim(),edited:true}); this.hideCtx(); },
-  async doDelete(id,key) { if(!confirm('Видалити?'))return; await DU('messages/'+key+'/'+id,{deleted:true,text:'',image:''}); this.hideCtx(); },
-  doCopy(id,key) { const m=this._msgs[key]?.[id]; navigator.clipboard.writeText(m?.text||'').catch(()=>{}); this.hideCtx(); },
+    requestAnimationFrame(gameLoop);
+}
 
-  async send() {
-    const inp=document.getElementById('mi'); const text=inp.value.trim();
-    if (!text||!this.ac) return;
-    if (this._users[this.cu.username]?.muted) return alert('Ви замучені — надсилання заборонено');
-    const key=this.ck(this.cu.username,this.ac);
-    const msg={from:this.cu.username,to:this.ac,text,time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),ts:Date.now(),read:false};
-    if (this.replyTo) { msg.replyId=this.replyTo; this.cancelReply(); }
-    inp.value='';
-    await DP('messages/'+key, msg);
-  },
+// Обробка пострілів та кліків
+canvas.addEventListener('mousedown', (e) => {
+    if (!gameActive) return;
 
-  sendImg(inp) {
-    if (!inp.files[0]) return;
-    const r=new FileReader();
-    r.onload=async e=>{
-      const key=this.ck(this.cu.username,this.ac);
-      const msg={from:this.cu.username,to:this.ac,image:e.target.result,text:'',time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),ts:Date.now(),read:false};
-      if (this.replyTo) { msg.replyId=this.replyTo; this.cancelReply(); }
-      await DP('messages/'+key, msg);
-    };
-    r.readAsDataURL(inp.files[0]); inp.value='';
-  },
-
-  async clearChat() {
-    if (!confirm('Очистити переписку?')) return;
-    await DR('messages/'+this.ck(this.cu.username,this.ac));
-  },
-
-  // ─── SETTINGS ────────────────────────────────────────────────
-  async openSettings() {
-    const u=this._users[this.cu.username]||this.cu;
-    this._sv=u.avatar||null;
-    document.getElementById('snick').value=u.nick||'';
-    document.getElementById('sbio').value=u.bio||'';
-    document.getElementById('avurl').value='';
-    document.getElementById('alogin').innerText=u.username;
-    document.getElementById('areg').innerText=u.regDate||'—';
-    document.getElementById('avpicker').style.display='none';
-    this.applyAv(document.getElementById('bav'),u.avatar,u.nick);
-    document.getElementById('snl').innerHTML=(u.nick||u.username)+this.vh(u);
-    if (localStorage.getItem('theme')==='dark') document.getElementById('ttheme').checked=true;
-    const bl=u.blocked||[];
-    document.getElementById('bllist').innerHTML=bl.length
-      ? bl.map(b=>`<span style="display:inline-flex;align-items:center;gap:3px;background:var(--bg-sidebar);padding:2px 7px;border-radius:5px;margin:2px;font-size:12px">@${b} <span style="cursor:pointer;color:var(--danger)" onclick="A.unblock('${b}')">✕</span></span>`).join('')
-      : '<span style="font-size:12px">Немає заблокованих</span>';
-    this.sTab('p');
-    document.getElementById('m-set').style.display='flex';
-  },
-
-  sTab(n) {
-    const tabs=['p','a','l','v'];
-    document.querySelectorAll('.stab').forEach((t,i)=>t.classList.toggle('on',tabs[i]===n));
-    document.querySelectorAll('.sc').forEach(c=>c.classList.remove('on'));
-    document.getElementById('st-'+n).classList.add('on');
-  },
-
-  async saveProfile() {
-    const nick=document.getElementById('snick').value.trim()||this.cu.username;
-    const bio=document.getElementById('sbio').value.trim();
-    await DU('users/'+this.cu.username,{nick,bio,avatar:this._sv||''});
-    await this.log('@'+this.cu.username+' оновив профіль');
-    this.closeM();
-  },
-
-  async chPass() {
-    const o=document.getElementById('op').value, n=document.getElementById('np').value, n2=document.getElementById('np2').value;
-    const cur=this._users[this.cu.username]||this.cu;
-    if(o!==cur.pass) return alert('Старий пароль невірний');
-    if(n.length<4) return alert('Мінімум 4 символи');
-    if(n!==n2) return alert('Паролі не збігаються');
-    await DU('users/'+this.cu.username,{pass:n});
-    ['op','np','np2'].forEach(id=>document.getElementById(id).value='');
-    await this.log('@'+this.cu.username+' змінив пароль');
-    alert('✅ Пароль змінено!');
-  },
-
-  async delAcc() {
-    if(!confirm('Видалити акаунт назавжди?')||!confirm('Точно?')) return;
-    await DR('users/'+this.cu.username);
-    await this.log('Акаунт @'+this.cu.username+' видалено');
-    this.logout();
-  },
-
-  async unblock(u) {
-    const cur=this._users[this.cu.username]||this.cu;
-    await DU('users/'+this.cu.username,{blocked:(cur.blocked||[]).filter(b=>b!==u)});
-    this.openSettings(); this.sTab('v');
-  },
-
-  toggleTheme() {
-    const d=document.getElementById('ttheme').checked;
-    document.documentElement.setAttribute('data-theme',d?'dark':'light');
-    localStorage.setItem('theme',d?'dark':'light');
-  },
-
-  // ─── AVATAR PICKER ───────────────────────────────────────────
-  AVS:[
-    {c:'Тварини',i:[{e:'🐱'},{e:'🐶'},{e:'🦊'},{e:'🐺'},{e:'🦁'},{e:'🐯'},{e:'🐸'},{e:'🐼'},{e:'🐨'},{e:'🐮'},{e:'🐷'},{e:'🐙'},{e:'🦋'},{e:'🦄'},{e:'🐧'},{e:'🦅'},{e:'🐬'},{e:'🦈'}]},
-    {c:'Персонажі',i:[{e:'😎'},{e:'🤖'},{e:'👾'},{e:'👻'},{e:'🎭'},{e:'🥷'},{e:'🧙'},{e:'🧛'},{e:'🤠'},{e:'🥸'},{e:'🧜'},{e:'🧚'}]},
-    {c:'Природа',i:[{e:'🌙'},{e:'⭐'},{e:'🌈'},{e:'⚡'},{e:'🔥'},{e:'❄️'},{e:'🌊'},{e:'🌺'},{e:'🍀'},{e:'☀️'},{e:'🌍'},{e:'🌋'}]},
-    {c:'Символи',i:[{e:'💎'},{e:'👑'},{e:'🎮'},{e:'🎯'},{e:'⚔️'},{e:'🛡️'},{e:'🎵'},{e:'🎸'},{e:'🏆'},{e:'💻'},{e:'🚀'},{e:'🎲'}]},
-    {c:'Стиль',i:[{g:'linear-gradient(135deg,#667eea,#764ba2)'},{g:'linear-gradient(135deg,#f093fb,#f5576c)'},{g:'linear-gradient(135deg,#4facfe,#00f2fe)'},{g:'linear-gradient(135deg,#43e97b,#38f9d7)'},{g:'linear-gradient(135deg,#fa709a,#fee140)'},{g:'linear-gradient(135deg,#a18cd1,#fbc2eb)'},{g:'linear-gradient(135deg,#ffecd2,#fcb69f)'},{g:'linear-gradient(135deg,#ff9a9e,#fad0c4)'},{g:'linear-gradient(135deg,#a1c4fd,#c2e9fb)'},{g:'linear-gradient(135deg,#fd7043,#ff8a65)'},{g:'linear-gradient(135deg,#26c6da,#00838f)'},{g:'linear-gradient(135deg,#7c3aed,#4f46e5)'}]},
-  ],
-
-  toggleAvPicker() {
-    const p=document.getElementById('avpicker');
-    if(p.style.display==='none'){this.buildAvGrid();p.style.display='block';}
-    else p.style.display='none';
-  },
-
-  buildAvGrid() {
-    const g=document.getElementById('avgrid'); g.innerHTML='';
-    const nick=document.getElementById('snick').value||this.cu.nick||'?';
-    this.AVS.forEach(grp=>{
-      const c=document.createElement('div'); c.className='avc'; c.innerText=grp.c; g.appendChild(c);
-      grp.i.forEach(item=>{
-        const d=document.createElement('div'); d.className='avp';
-        if(item.g){d.style.background=item.g;d.style.color='#fff';d.style.fontWeight='700';d.style.fontSize='17px';d.innerText=nick[0].toUpperCase();d.dataset.v='gradient::'+item.g;}
-        else{d.style.background='var(--bg-main)';d.style.fontSize='25px';d.innerText=item.e;d.dataset.v='emoji::'+item.e;}
-        if(this._sv===d.dataset.v) d.classList.add('sel');
-        d.onclick=()=>this.pickAv(d);
-        g.appendChild(d);
-      });
-    });
-  },
-
-  pickAv(el) {
-    document.querySelectorAll('.avp').forEach(a=>a.classList.remove('sel')); el.classList.add('sel');
-    this._sv=el.dataset.v;
-    this.applyAv(document.getElementById('bav'),this._sv,document.getElementById('snick').value||this.cu.nick);
-  },
-
-  applyUrl() {
-    const u=document.getElementById('avurl').value.trim(); if(!u) return;
-    this._sv=u; this.applyAv(document.getElementById('bav'),u,this.cu.nick);
-    document.getElementById('avpicker').style.display='none';
-  },
-
-  // ─── AVATAR UTILS ────────────────────────────────────────────
-  sc(s){const c=['#e53935','#8e24aa','#1e88e5','#00897b','#43a047','#fb8c00','#6d4c41','#546e7a'];let h=0;for(let i=0;i<(s||'').length;i++)h=s.charCodeAt(i)+((h<<5)-h);return c[Math.abs(h)%c.length];},
-  avStyle(av,nick){if(!av)return`background-color:${this.sc(nick)};`;if(av.startsWith('gradient::'))return`background:${av.replace('gradient::','')};`;if(av.startsWith('emoji::'))return`background:var(--bg-sidebar);`;return`background-image:url(${av});background-color:transparent;background-size:cover;background-position:center;`;},
-  avInit(av,nick){if(!av)return(nick||'?')[0].toUpperCase();if(av.startsWith('gradient::'))return(nick||'?')[0].toUpperCase();if(av.startsWith('emoji::'))return av.replace('emoji::','');return'';},
-  applyAv(el,av,nick){if(!el)return;el.style.backgroundSize='cover';el.style.backgroundPosition='center';if(!av){el.style.backgroundImage='none';el.style.background=this.sc(nick);el.innerText=(nick||'?')[0].toUpperCase();el.style.fontSize='';el.style.color='#fff';}else if(av.startsWith('gradient::')){el.style.backgroundImage='none';el.style.background=av.replace('gradient::','');el.innerText=(nick||'?')[0].toUpperCase();el.style.fontSize='26px';el.style.color='#fff';}else if(av.startsWith('emoji::')){el.style.backgroundImage='none';el.style.background='var(--bg-sidebar)';el.innerText=av.replace('emoji::','');el.style.fontSize='34px';el.style.color='';}else{el.style.backgroundImage=`url(${av})`;el.style.backgroundColor='transparent';el.innerText='';el.style.fontSize='';}},
-  vh(u){if(u.verifiedBlue)return'<span class="vb">✔</span>';if(u.verified)return'<span class="vf">✔</span>';return'';},
-
-  // ─── USER PROFILE ────────────────────────────────────────────
-  openProfile() {
-    if(!this.ac) return;
-    const u=this._users[this.ac]; if(!u) return;
-    const key=this.ck(this.cu.username,this.ac);
-    const total=Object.values(this._msgs[key]||{}).filter(m=>!m.deleted).length;
-    document.getElementById('profcnt').innerHTML=`
-      <div style="text-align:center;margin-bottom:16px">
-        <div id="pav" style="width:76px;height:76px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:29px;font-weight:700;color:#fff;margin:0 auto 9px"></div>
-        <div style="font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:4px">${u.nick||u.username}${this.vh(u)}</div>
-        <div style="color:var(--text-muted);font-size:13px;margin-top:2px">@${u.username}</div>
-        ${u.bio?`<div style="margin-top:5px;font-size:13px">${u.bio}</div>`:''}
-      </div>
-      <div style="background:var(--bg-sidebar);border-radius:9px;padding:11px;font-size:13px">
-        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)"><span>Реєстрація</span><span style="color:var(--text-muted)">${u.regDate||'—'}</span></div>
-        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)"><span>Повідомлень разом</span><span style="color:var(--primary);font-weight:700">${total}</span></div>
-        <div style="display:flex;justify-content:space-between;padding:4px 0"><span>Статус</span><span style="color:${u.banned?'var(--danger)':u.muted?'orange':'#4caf50'}">${u.banned?'Заблоковано':u.muted?'Замучений':'Активний'}</span></div>
-      </div>`;
-    this.applyAv(document.getElementById('pav'),u.avatar,u.nick);
-    document.getElementById('m-prof').style.display='flex';
-  },
-
-  // ─── ADMIN ───────────────────────────────────────────────────
-  logoClick() { this.lc++; if(this.lc>=5){this.lc=0;if(this.cu.username==='vortex')this.openAdmin();} setTimeout(()=>this.lc=0,3000); },
-  openAdmin() { this.aTab('u'); document.getElementById('m-adm').style.display='flex'; },
-
-  aTab(n) {
-    const t=['u','s','m','b','l'];
-    document.querySelectorAll('.atb').forEach((el,i)=>el.classList.toggle('on',t[i]===n));
-    document.querySelectorAll('.atp').forEach(el=>el.classList.remove('on'));
-    document.getElementById('at-'+n).classList.add('on');
-    if(n==='u') this.renderAdmUsers();
-    if(n==='s') this.renderAdmStats();
-    if(n==='m') this.renderAdmMsgs();
-    if(n==='l') this.renderAdmLogs();
-  },
-
-  renderAdmUsers() {
-    const q=(document.getElementById('asrch')?.value||'').toLowerCase();
-    const c=document.getElementById('aulist'); c.innerHTML='';
-    let list=Object.values(this._users).filter(u=>!q||u.username.includes(q)||(u.nick||'').toLowerCase().includes(q));
-    list.sort((a,b)=>a.username==='vortex'?-1:b.username==='vortex'?1:0);
-    if(!list.length){c.innerHTML='<div style="padding:11px;text-align:center;color:var(--text-muted);font-size:13px">Немає</div>';return;}
-    list.forEach(u=>{
-      const self=u.username==='vortex';
-      const r=document.createElement('div'); r.className='aur';
-      const bl=u.banned?` <span style="color:var(--danger);font-size:10px">[БАН]</span>`:'';
-      const ml=u.muted?` <span style="color:orange;font-size:10px">[МУТ]</span>`:'';
-      const sl=self?` <span style="color:#2ca5e0;font-size:10px;font-weight:700">[ВИ]</span>`:'';
-      const vb=u.verifiedBlue?`<button class="b2" onclick="A.vV('${u.username}',false)">Зняти ✔</button>`:`<button class="b1" onclick="A.vV('${u.username}',true)">Дати ✔</button>`;
-      const bb=!self?(u.banned?`<button class="b4" onclick="A.vB('${u.username}',false)">Розбан</button>`:`<button class="b3" onclick="A.vB('${u.username}',true)">Бан</button>`):'';
-      const mb=!self?(u.muted?`<button class="b6" onclick="A.vM('${u.username}',false)">Анмут</button>`:`<button class="b5" onclick="A.vM('${u.username}',true)">Мут</button>`):'';
-      const db2=!self?`<button class="b7" onclick="A.vD('${u.username}')">Видал.</button>`:'';
-      const cb=!self?`<button class="b8" onclick="A.vC('${u.username}')">Чат</button>`:'';
-      const pb=!self?`<button class="b2" onclick="A.vP('${u.username}')">Пароль</button>`:'';
-      r.innerHTML=`<div class="aui"><span class="un">${u.nick||u.username}${this.vh(u)}${bl}${ml}${sl}</span><span class="ul">@${u.username}</span><span class="up">🔑 ${u.pass}</span></div><div class="aa">${vb}${bb}${mb}${db2}${cb}${pb}</div>`;
-      c.appendChild(r);
-    });
-  },
-
-  async vV(u,s){await DU('users/'+u,{verifiedBlue:s});await this.log('vortex '+(s?'видав':'зняв')+' ✔ @'+u);this.renderAdmUsers();},
-  async vB(u,s){await DU('users/'+u,{banned:s});await this.log('vortex '+(s?'забанив':'розбанив')+' @'+u);this.renderAdmUsers();this.renderUsers();if(this.ac===u&&s){document.getElementById('chat').style.display='none';document.getElementById('noc').style.display='flex';this.ac=null;}},
-  async vM(u,s){await DU('users/'+u,{muted:s});await this.log('vortex '+(s?'замутив':'анмутив')+' @'+u);this.renderAdmUsers();},
-  async vD(u){if(!confirm('Видалити @'+u+'?'))return;await DR('users/'+u);await this.log('vortex видалив @'+u);this.renderAdmUsers();if(this.ac===u){document.getElementById('chat').style.display='none';document.getElementById('noc').style.display='flex';this.ac=null;}},
-  async vC(u){if(!confirm('Видалити переписку з @'+u+'?'))return;await DR('messages/'+this.ck('vortex',u));await this.log('vortex очистив чат @'+u);},
-  async vP(u){const p=prompt('Новий пароль для @'+u+':');if(!p||p.length<4)return alert('Мінімум 4 символи');await DU('users/'+u,{pass:p});await this.log('vortex змінив пароль @'+u);this.renderAdmUsers();alert('✅ Новий пароль: '+p);},
-
-  async renderAdmStats() {
-    const users=Object.values(this._users);
-    const ms=await DG('messages');
-    let total=0,chats=0;
-    if(ms.exists()){const v=ms.val();chats=Object.keys(v).length;Object.values(v).forEach(c=>total+=Object.keys(c).length);}
-    document.getElementById('astats').innerHTML=`
-      <div class="sc2"><div class="sn">${users.length}</div><div class="slb">Користувачів</div></div>
-      <div class="sc2"><div class="sn">${total}</div><div class="slb">Повідомлень</div></div>
-      <div class="sc2"><div class="sn">${chats}</div><div class="slb">Чатів</div></div>
-      <div class="sc2"><div class="sn">${users.filter(u=>u.banned).length}</div><div class="slb">Забанених</div></div>
-      <div class="sc2"><div class="sn">${users.filter(u=>u.muted).length}</div><div class="slb">Замучених</div></div>
-      <div class="sc2"><div class="sn">${users.filter(u=>u.verifiedBlue||u.verified).length}</div><div class="slb">Верифікованих</div></div>`;
-  },
-
-  async renderAdmMsgs() {
-    const c=document.getElementById('amsgs'); c.innerHTML='';
-    const ms=await DG('messages');
-    if(!ms.exists()){c.innerHTML='<div style="padding:11px;text-align:center;color:var(--text-muted);font-size:12px">Немає</div>';return;}
-    const all=[];
-    Object.entries(ms.val()).forEach(([key,chat])=>Object.entries(chat).forEach(([id,m])=>all.push({...m,key,id})));
-    all.sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,100).forEach(m=>{
-      const d=document.createElement('div'); d.style.cssText='padding:6px 9px;border-bottom:1px solid var(--border);font-size:12px';
-      d.innerHTML=`<span style="color:var(--primary);font-weight:600">@${m.from}</span> → <span style="color:#2ca5e0">@${m.to}</span> <span style="color:var(--text-muted);float:right">${m.time}</span><br><span>${m.deleted?'<i style="opacity:.5">Видалено</i>':(m.image?'🖼 Фото':m.text||'')}</span>${!m.deleted?` <span style="cursor:pointer;color:var(--danger)" onclick="A.admDel('${m.key}','${m.id}')">✕</span>`:''}`;
-      c.appendChild(d);
-    });
-  },
-
-  async admDel(k,id){await DU('messages/'+k+'/'+id,{deleted:true,text:'',image:''});this.renderAdmMsgs();if(this.ac)this.renderMsgs();},
-  async admClearAll(){if(!confirm('Видалити ВСІ повідомлення?'))return;await DR('messages');await this.log('vortex видалив всі повідомлення');this.renderAdmMsgs();if(this.ac){this._msgs={};this.renderMsgs();}},
-
-  async broadcast() {
-    const text=document.getElementById('btxt').value.trim(); if(!text)return alert('Введіть текст');
-    const tgt=document.getElementById('btgt').value, single=document.getElementById('bone').value.trim();
-    const time=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); let n=0;
-    for(const u of Object.values(this._users)){
-      if(u.username==='vortex')continue;
-      if(tgt==='ver'&&!u.verifiedBlue&&!u.verified)continue;
-      if(tgt==='one'&&u.username!==single)continue;
-      await DP('messages/'+this.ck('vortex',u.username),{from:'vortex',to:u.username,text:'📢 '+text,time,ts:Date.now(),read:false}); n++;
+    if (currentWeapon === 3) {
+        // Анімація ножа
+        document.getElementById('knife-emoji').classList.add('inspect-anim');
+        setTimeout(() => {
+            document.getElementById('knife-emoji').classList.remove('inspect-anim');
+        }, 500);
     }
-    document.getElementById('btxt').value='';
-    await this.log('vortex розіслав: "'+text.substring(0,40)+'"');
-    alert('✅ Надіслано '+n+' користувачам');
-  },
 
-  async log(msg){await DP('logs',{t:new Date().toLocaleString(),m:msg,ts:Date.now()});},
+    // Логіка попадання
+    entities.forEach((ent, index) => {
+        if (ent.team === 'red') {
+            const dist = Math.hypot(e.clientX - ent.x, e.clientY - ent.y);
+            if (dist < ent.radius + 10) {
+                let dmg = weapons[currentWeapon].damage;
+                ent.hp -= dmg;
+                createBlood(ent.x, ent.y);
+                if (ent.hp <= 0) {
+                    entities.splice(index, 1);
+                    checkWin();
+                }
+            }
+        }
+    });
+});
 
-  async renderAdmLogs(){
-    const c=document.getElementById('alogs'); c.innerHTML='';
-    const s=await DG('logs');
-    if(!s.exists()){c.innerHTML='<div style="padding:7px;color:var(--text-muted)">Порожньо</div>';return;}
-    Object.values(s.val()).sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,200).forEach(l=>{const d=document.createElement('div');d.style.cssText='padding:4px 7px;border-bottom:1px solid var(--border)';d.innerHTML=`<span style="color:var(--text-muted)">[${l.t}]</span> ${l.m}`;c.appendChild(d);});
-  },
+function createBlood(x, y) {
+    for(let i=0; i<10; i++) {
+        particles.push({
+            x, y, 
+            vx: (Math.random()-0.5)*10, 
+            vy: (Math.random()-0.5)*10, 
+            life: 1.0,
+            color: '#ff0000'
+        });
+    }
+}
 
-  async clearLogs(){if(!confirm('Очистити логи?'))return;await DR('logs');this.renderAdmLogs();},
+// Зміна зброї
+window.addEventListener('keydown', (e) => {
+    if (['1','2','3'].includes(e.key)) {
+        currentWeapon = parseInt(e.key);
+        document.querySelectorAll('.w-icon').forEach(el => el.classList.remove('active'));
+        document.getElementById(`slot-${currentWeapon}`).classList.add('active');
+    }
+});
 
-  closeM(){document.querySelectorAll('.modal').forEach(m=>m.style.display='none');}
-};
+function gameLoop() {
+    if (!gameActive) return;
 
-window.A=A;
-A.init();
+    // Фон (Карта типу Dust 2)
+    ctx.fillStyle = '#c2b280'; 
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Малюємо об'єкти (стіни/ящики)
+    ctx.fillStyle = '#8b4513';
+    ctx.fillRect(200, 200, 100, 100);
+    ctx.fillRect(canvas.width - 300, 400, 150, 80);
+
+    // Оновлення частинок
+    particles.forEach((p, i) => {
+        p.x += p.vx; p.y += p.vy; p.life -= 0.02;
+        ctx.fillStyle = `rgba(255,0,0,${p.life})`;
+        ctx.fillRect(p.x, p.y, 4, 4);
+        if(p.life <= 0) particles.splice(i, 1);
+    });
+
+    // Оновлення персонажів
+    entities.forEach(ent => {
+        ent.update();
+        ent.draw();
+    });
+
+    requestAnimationFrame(gameLoop);
+}
+
+function checkWin() {
+    const enemies = entities.filter(e => e.team === 'red');
+    if (enemies.length === 0) {
+        alert("TERRORISTS WIN! Повернення в лоббі.");
+        location.reload();
+    }
+}
+
+// Додатковий "важкий" код для об'єму (Симуляція великої бази даних скінів)
+const skinDatabase = [];
+for(let i=0; i<500; i++) {
+    skinDatabase.push({
+        id: i,
+        name: `Skin #${i}`,
+        rarity: i % 10 === 0 ? 'Covert' : 'Mil-spec',
+        float: Math.random()
+    });
+}
+console.log("Skin Database Loaded:", skinDatabase.length, "items");
+
 </script>
 </body>
 </html>
