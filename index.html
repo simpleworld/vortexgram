@@ -3,99 +3,102 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CS2 Web Clone - High Performance</title>
+    <title>CS2 Web Engine Pro</title>
     <style>
-        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #000; color: white; }
-        canvas { display: block; }
+        /* Стилізація інтерфейсу */
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #050505; color: #fff; font-family: 'Segoe UI', Roboto, sans-serif; }
+        canvas { display: block; width: 100vw; height: 100vh; }
 
-        /* UI Styles */
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
-        .menu-screen { position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: all; }
-        .hidden { display: none !important; }
+        #ui-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 100; }
+        .screen { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle, rgba(40,44,52,0.4) 0%, rgba(10,10,12,0.9) 100%); pointer-events: all; transition: opacity 0.5s; }
+        .hidden { display: none !important; opacity: 0; }
 
-        .btn {
-            background: linear-gradient(135deg, #f39c12, #e67e22);
-            border: none; padding: 15px 40px; color: white; font-size: 24px; font-weight: bold;
-            cursor: pointer; margin: 10px; border-radius: 5px; text-transform: uppercase;
-            transition: transform 0.2s, box-shadow 0.2s; pointer-events: all;
+        /* Кнопки */
+        .main-btn {
+            background: linear-gradient(to right, #f39c12, #d35400);
+            border: none; color: white; padding: 20px 60px; font-size: 28px; font-weight: 900;
+            text-transform: uppercase; cursor: pointer; border-radius: 4px; clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); margin: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.4);
         }
-        .btn:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(243, 156, 18, 0.6); }
+        .main-btn:hover { transform: scale(1.1) skewX(-5deg); box-shadow: 0 0 30px rgba(243, 156, 18, 0.5); }
 
-        /* HUD */
-        #hud { position: absolute; bottom: 0; width: 100%; height: 120px; display: flex; justify-content: space-between; align-items: flex-end; padding: 20px; box-sizing: border-box; }
-        .stat-box { background: rgba(0,0,0,0.5); padding: 10px 20px; border-left: 5px solid #f39c12; }
-        .hp-text { font-size: 48px; font-weight: bold; }
-        
-        .weapon-slots { display: flex; gap: 10px; }
-        .slot { width: 80px; height: 50px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; }
-        .slot.active { border-color: #f39c12; background: rgba(243, 156, 18, 0.2); }
-        .slot img { max-width: 90%; filter: brightness(0) invert(1); }
+        /* Інвентар */
+        #inventory-grid { display: grid; grid-template-columns: repeat(3, 200px); gap: 20px; margin: 30px; }
+        .inv-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 15px; text-align: center; border-bottom: 4px solid #555; cursor: pointer; }
+        .inv-card:hover { background: rgba(255,255,255,0.1); border-bottom-color: #f39c12; }
+        .inv-card.active { border-bottom-color: #f39c12; background: rgba(243, 156, 18, 0.1); }
+        .weapon-preview { height: 100px; width: 100%; background: #111; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; position: relative; }
+        .rarity-red { border-bottom-color: #eb4b4b !important; }
+        .rarity-gold { border-bottom-color: #caab05 !important; }
 
-        /* Crosshair */
-        #crosshair {
-            position: absolute; top: 50%; left: 50%; width: 20px; height: 20px;
-            transform: translate(-50%, -50%); pointer-events: none;
-        }
-        .ch-line { position: absolute; background: #0f0; }
-        .v-line { left: 9px; width: 2px; height: 100%; }
-        .h-line { top: 9px; height: 2px; width: 100%; }
+        /* HUD під час гри */
+        #game-hud { position: absolute; bottom: 0; width: 100%; height: 100%; pointer-events: none; }
+        .hud-bottom { position: absolute; bottom: 30px; width: 100%; display: flex; justify-content: space-between; padding: 0 50px; box-sizing: border-box; }
+        .hud-stats { display: flex; align-items: center; gap: 20px; }
+        .stat-item { background: rgba(0,0,0,0.6); padding: 10px 30px; border-radius: 4px; border-left: 6px solid #f39c12; }
+        .stat-val { font-size: 40px; font-weight: bold; }
+        .stat-label { font-size: 12px; color: #aaa; text-transform: uppercase; }
 
-        /* Inventory Overlay */
-        #inventory-screen { background: rgba(20, 20, 25, 0.9); }
-        .inv-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 20px; }
-        .inv-item { background: #2c3e50; padding: 20px; border-radius: 10px; text-align: center; cursor: pointer; }
-        .inv-item:hover { background: #34495e; }
+        .weapon-icons { display: flex; gap: 10px; }
+        .w-icon { width: 120px; height: 60px; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .w-icon.selected { border: 2px solid #f39c12; background: rgba(243, 156, 18, 0.2); }
+        .w-icon img { height: 40px; }
+
+        #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 24px; height: 24px; }
+        .ch-dot { position: absolute; top: 10px; left: 10px; width: 4px; height: 4px; background: #0f0; border-radius: 50%; }
     </style>
 </head>
 <body>
 
-<div id="ui-layer">
-    <div id="lobby-screen" class="menu-screen">
-        <h1 style="font-size: 64px; margin-bottom: 50px;">COUNTER-STRIKE <span style="color: #f39c12;">2</span> WEB</h1>
-        <button class="btn" onclick="showModes()">ГРАТИ</button>
-        <button class="btn" onclick="toggleInventory(true)">ІНВЕНТАР</button>
+<div id="ui-container">
+    <div id="lobby-screen" class="screen">
+        <h1 style="font-style: italic; font-size: 72px; letter-spacing: -2px; margin-bottom: 50px;">COUNTER<span style="color:#f39c12">STRIKE</span> 2</h1>
+        <button class="main-btn" onclick="openModes()">ПОЧАТИ ГРУ</button>
+        <button class="main-btn" onclick="openInventory()" style="background: #34495e;">ІНВЕНТАР</button>
+        <div style="margin-top: 50px; color: #777;">Web Build v1.0.4 | 3D Hardware Accelerated</div>
     </div>
 
-    <div id="mode-screen" class="menu-screen hidden">
-        <h2>ОБЕРІТЬ РЕЖИМ</h2>
-        <button class="btn" onclick="startGame(1)">1 VS 1</button>
-        <button class="btn" onclick="startGame(2)">2 VS 2</button>
-        <button class="btn" onclick="hideModes()" style="background: #7f8c8d;">НАЗАД</button>
+    <div id="mode-screen" class="screen hidden">
+        <h2 style="font-size: 40px;">ОБЕРІТЬ РЕЖИМ</h2>
+        <div style="display: flex;">
+            <button class="main-btn" onclick="startMatch(1)">1 VS 1</button>
+            <button class="main-btn" onclick="startMatch(2)">2 VS 2</button>
+        </div>
+        <button onclick="closeScreens()" style="background:none; border:none; color:#aaa; cursor:pointer; margin-top:20px;">ПОВЕРНУТИСЯ</button>
     </div>
 
-    <div id="inventory-screen" class="menu-screen hidden">
-        <h2>ВАШ ІНВЕНТАР</h2>
-        <div class="inv-grid">
-            <div class="inv-item" onclick="selectWeapon(0)">
-                <div style="height: 60px; background: #555;">AKR</div>
-                <p>Default Skin</p>
+    <div id="inventory-screen" class="screen hidden">
+        <h2 style="font-size: 40px;">ОБЛАДНАННЯ</h2>
+        <div id="inventory-grid">
+            <div class="inv-card rarity-red" onclick="selectWep('akr')">
+                <div class="weapon-preview">AKR</div>
+                <div><b>AKR | Vulcan</b></div>
             </div>
-            <div class="inv-item" onclick="selectWeapon(1)">
-                <div style="height: 60px; background: #555;">GLOCK</div>
-                <p>Steel</p>
+            <div class="inv-card" onclick="selectWep('pistol')">
+                <div class="weapon-preview">P250</div>
+                <div><b>P250 | Sand Dune</b></div>
             </div>
-            <div class="inv-item" onclick="selectWeapon(2)">
-                <div style="height: 60px; background: #f39c12;">BUTTERFLY</div>
-                <p>Fade Animation</p>
+            <div class="inv-card rarity-gold" onclick="selectWep('knife')">
+                <div class="weapon-preview">BUTTERFLY</div>
+                <div><b>Knife | Fade</b></div>
             </div>
         </div>
-        <button class="btn" onclick="toggleInventory(false)" style="margin-top: 40px;">ЗАКРИТИ</button>
+        <button class="main-btn" onclick="closeScreens()">ПРИЙНЯТИ</button>
     </div>
 
     <div id="game-hud" class="hidden">
-        <div id="crosshair">
-            <div class="ch-line v-line"></div>
-            <div class="ch-line h-line"></div>
-        </div>
-        <div id="hud">
-            <div class="stat-box">
-                <span style="color: #f39c12; font-size: 14px;">ЗДОРОВ'Я</span>
-                <div class="hp-text" id="hp-val">100</div>
+        <div id="crosshair"><div class="ch-dot"></div></div>
+        <div class="hud-bottom">
+            <div class="hud-stats">
+                <div class="stat-item">
+                    <div class="stat-label">Здоров'я</div>
+                    <div class="stat-val" id="hp-display">100</div>
+                </div>
             </div>
-            <div class="weapon-slots">
-                <div class="slot" id="slot-1">AKR</div>
-                <div class="slot" id="slot-2">PISTOL</div>
-                <div class="slot active" id="slot-3">KNIFE</div>
+            <div class="weapon-icons">
+                <div id="ui-akr" class="w-icon">AKR</div>
+                <div id="ui-pistol" class="w-icon">PISTOL</div>
+                <div id="ui-knife" class="w-icon selected">KNIFE</div>
             </div>
         </div>
     </div>
@@ -105,342 +108,297 @@
 
 <script>
 /**
- * CS2 WEB ENGINE
- * CORE LOGIC
+ * CS2 WEB - ПОВНИЙ КОД ГРИ
  */
 
-// Global Variables
 let scene, camera, renderer, clock;
-let player = {
-    height: 1.8,
-    speed: 0.15,
-    hp: 100,
-    weapon: 'knife',
-    inGame: false
+let currentMode = 'lobby';
+let player = { hp: 100, weapon: 'knife', speed: 0.12, rotation: new THREE.Euler(0,0,0) };
+let weapons = {};
+let bots = [];
+let particles = [];
+let keys = {};
+
+// Ініціалізація системи
+window.onload = () => {
+    initEngine();
+    createWorld();
+    createPlayerModels();
+    animate();
 };
-let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
-let objects = []; // For collision
-let enemies = [];
-let teammates = [];
-let currentWeaponModel = null;
-let weaponGroup = new THREE.Group(); // Weapon attached to camera
 
-// Initialization
-function init() {
+function initEngine() {
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x222222);
-    scene.fog = new THREE.Fog(0x222222, 0, 50);
+    scene.background = new THREE.Color(0x0a0a0c);
+    scene.fog = new THREE.Fog(0x0a0a0c, 1, 60);
 
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    
-    renderer = new THREE.WebGLRenderer({ antialias: true });
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 1000);
+    camera.position.set(0, 1.6, 5);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
     renderer.shadowMap.enabled = true;
     document.body.appendChild(renderer.domElement);
 
     clock = new THREE.Clock();
 
-    // Lights
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-    scene.add(ambientLight);
+    // Світло
+    const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+    scene.add(ambient);
 
-    const sun = new THREE.DirectionalLight(0xffffff, 1);
+    const sun = new THREE.DirectionalLight(0xffffff, 1.2);
     sun.position.set(10, 20, 10);
     sun.castShadow = true;
     scene.add(sun);
 
-    createMap();
-    setupLobbyScene();
-    animate();
+    // Слухачі подій
+    window.addEventListener('resize', onWindowResize);
+    window.addEventListener('keydown', e => keys[e.code] = true);
+    window.addEventListener('keyup', e => keys[e.code] = false);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mousedown', handleShoot);
 }
 
-// Map Creation (Simple Arena)
-function createMap() {
-    // Floor
+// Створення світу
+function createWorld() {
+    // Підлога з сіткою
     const floorGeo = new THREE.PlaneGeometry(100, 100);
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1c, roughness: 0.8 });
     const floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
     scene.add(floor);
 
-    // Walls & Boxes
+    const grid = new THREE.GridHelper(100, 50, 0x444444, 0x222222);
+    scene.add(grid);
+
+    // Стіни та ящики
     const boxGeo = new THREE.BoxGeometry(2, 2, 2);
-    const boxMat = new THREE.MeshStandardMaterial({ color: 0x555555 });
-    
-    for(let i=0; i<15; i++) {
-        let box = new THREE.Mesh(boxGeo, boxMat);
+    for(let i=0; i<20; i++) {
+        const box = new THREE.Mesh(boxGeo, new THREE.MeshStandardMaterial({color: 0x333335}));
         box.position.set(Math.random()*40-20, 1, Math.random()*40-20);
         box.castShadow = true;
         scene.add(box);
-        objects.push(box);
     }
+
+    // Персонаж у лобі
+    const lobbyChar = createHumanoid(0x3498db);
+    lobbyChar.position.set(0, 0, 0);
+    lobbyChar.name = "lobby_player";
+    scene.add(lobbyChar);
 }
 
-/** * WEAPON MODELS (Procedural)
- */
-function createAKR() {
+// Генерація деталізованих моделей
+function createHumanoid(color) {
     const group = new THREE.Group();
-    // Body
-    const body = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.15, 0.6), new THREE.MeshStandardMaterial({color: 0x222222}));
-    group.add(body);
-    // Barrel
-    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.5), new THREE.MeshStandardMaterial({color: 0x111111}));
-    barrel.rotation.x = Math.PI/2;
-    barrel.position.z = 0.5;
-    group.add(barrel);
-    // Stock (Wood)
-    const stock = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.12, 0.3), new THREE.MeshStandardMaterial({color: 0x5d4037}));
-    stock.position.z = -0.4;
-    group.add(stock);
+    // Ноги
+    const legGeo = new THREE.BoxGeometry(0.3, 0.8, 0.3);
+    const legMat = new THREE.MeshStandardMaterial({color: 0x222222});
+    const lLeg = new THREE.Mesh(legGeo, legMat); lLeg.position.set(-0.2, 0.4, 0); group.add(lLeg);
+    const rLeg = new THREE.Mesh(legGeo, legMat); rLeg.position.set(0.2, 0.4, 0); group.add(rLeg);
+    // Тулуб
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.9, 0.4), new THREE.MeshStandardMaterial({color: color}));
+    body.position.y = 1.25; group.add(body);
+    // Голова
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.4), new THREE.MeshStandardMaterial({color: 0xffdbac}));
+    head.position.y = 1.9; group.add(head);
     return group;
 }
 
-function createPistol() {
+// Моделі зброї (Процедурні)
+function createAKRModel() {
+    const ak = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.12, 0.5), new THREE.MeshStandardMaterial({color: 0x222222}));
+    ak.add(body);
+    const stock = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.15, 0.3), new THREE.MeshStandardMaterial({color: 0x5d4037}));
+    stock.position.z = -0.4; ak.add(stock);
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.6), new THREE.MeshStandardMaterial({color: 0x111111}));
+    barrel.rotation.x = Math.PI/2; barrel.position.z = 0.5; ak.add(barrel);
+    const mag = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.25, 0.1), new THREE.MeshStandardMaterial({color: 0x222222}));
+    mag.position.y = -0.15; mag.position.z = 0.2; mag.rotation.x = 0.3; ak.add(mag);
+    return ak;
+}
+
+function createButterflyModel() {
+    const group = new THREE.Group();
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.3, 0.06), new THREE.MeshStandardMaterial({color: 0xcccccc, metalness: 0.9, roughness: 0.1}));
+    blade.position.y = 0.2;
+    group.add(blade);
+    const h1 = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.25, 0.04), new THREE.MeshStandardMaterial({color: 0xff4400}));
+    h1.position.set(0.02, 0, 0); group.add(h1);
+    const h2 = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.25, 0.04), new THREE.MeshStandardMaterial({color: 0xff4400}));
+    h2.position.set(-0.02, 0, 0); group.add(h2);
+    return group;
+}
+
+function createPistolModel() {
     const group = new THREE.Group();
     const slide = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.1, 0.3), new THREE.MeshStandardMaterial({color: 0x333333}));
     group.add(slide);
-    const grip = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.2, 0.08), new THREE.MeshStandardMaterial({color: 0x222222}));
-    grip.position.y = -0.12;
-    grip.position.z = -0.05;
-    group.add(grip);
+    const grip = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.2, 0.1), new THREE.MeshStandardMaterial({color: 0x222222}));
+    grip.position.set(0, -0.1, -0.05); grip.rotation.x = 0.2; group.add(grip);
     return group;
 }
 
-function createButterflyKnife() {
-    const group = new THREE.Group();
-    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.25, 0.05), new THREE.MeshStandardMaterial({color: 0xcccccc, metalness: 0.8}));
-    blade.position.y = 0.2;
-    group.add(blade);
-    const handle1 = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.2, 0.03), new THREE.MeshStandardMaterial({color: 0xff4400}));
-    handle1.position.x = 0.02;
-    group.add(handle1);
-    const handle2 = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.2, 0.03), new THREE.MeshStandardMaterial({color: 0xff4400}));
-    handle2.position.x = -0.02;
-    group.add(handle2);
-    return group;
-}
-
-// Bot / Character Creation
-function createCharacter(color) {
-    const group = new THREE.Group();
-    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 1, 4, 8), new THREE.MeshStandardMaterial({color: color}));
-    body.position.y = 0.9;
-    group.add(body);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.25), new THREE.MeshStandardMaterial({color: 0xffdbac}));
-    head.position.y = 1.6;
-    group.add(head);
-    return group;
-}
-
-/**
- * GAME ENGINE STATE
- */
-function setupLobbyScene() {
-    camera.position.set(0, 1.6, 4);
-    player.inGame = false;
-    
-    // Character in lobby
-    const lobbyChar = createCharacter(0x3498db);
-    lobbyChar.position.set(0, 0, 0);
-    scene.add(lobbyChar);
-    
-    const knife = createButterflyKnife();
-    knife.position.set(0.4, 1.2, 0.3);
-    knife.rotation.x = Math.PI/2;
-    lobbyChar.add(knife);
-}
-
-function showModes() {
+// Логіка інтерфейсу
+function openModes() { 
     document.getElementById('lobby-screen').classList.add('hidden');
     document.getElementById('mode-screen').classList.remove('hidden');
 }
 
-function hideModes() {
-    document.getElementById('mode-screen').classList.add('hidden');
+function openInventory() {
+    document.getElementById('lobby-screen').classList.add('hidden');
+    document.getElementById('inventory-screen').classList.remove('hidden');
+}
+
+function closeScreens() {
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
     document.getElementById('lobby-screen').classList.remove('hidden');
 }
 
-function toggleInventory(show) {
-    if(show) {
-        document.getElementById('lobby-screen').classList.add('hidden');
-        document.getElementById('inventory-screen').classList.remove('hidden');
-    } else {
-        document.getElementById('inventory-screen').classList.add('hidden');
-        document.getElementById('lobby-screen').classList.remove('hidden');
-    }
+function selectWep(type) {
+    player.weapon = type;
+    document.querySelectorAll('.inv-card').forEach(c => c.classList.remove('active'));
+    document.querySelectorAll('.w-icon').forEach(i => i.classList.remove('selected'));
+    document.getElementById('ui-' + type).classList.add('selected');
+    updateWeaponInHand();
 }
 
-function selectWeapon(type) {
-    const slots = ['slot-1', 'slot-2', 'slot-3'];
-    slots.forEach(s => document.getElementById(s).classList.remove('active'));
+function startMatch(mode) {
+    currentMode = 'game';
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+    document.getElementById('game-hud').classList.remove('hidden');
     
-    if(type === 0) { player.weapon = 'akr'; document.getElementById('slot-1').classList.add('active'); }
-    if(type === 1) { player.weapon = 'pistol'; document.getElementById('slot-2').classList.add('active'); }
-    if(type === 2) { player.weapon = 'knife'; document.getElementById('slot-3').classList.add('active'); }
-    
+    // Очистка лобі
+    const lp = scene.getObjectByName("lobby_player");
+    if(lp) scene.remove(lp);
+
+    camera.position.set(20, 1.6, 20);
+    document.body.requestPointerLock();
+
+    // Спавн ботів
+    spawnBots(mode);
     updateWeaponInHand();
+}
+
+function spawnBots(count) {
+    for(let i=0; i<count; i++) {
+        const enemy = createHumanoid(0xeb4b4b);
+        enemy.position.set(Math.random()*10-5, 0, Math.random()*10-20);
+        enemy.userData = { hp: 100, team: 'red' };
+        bots.push(enemy);
+        scene.add(enemy);
+    }
+    if(count === 2) {
+        const ally = createHumanoid(0x3498db);
+        ally.position.set(15, 0, 15);
+        ally.userData = { hp: 100, team: 'blue' };
+        bots.push(ally);
+        scene.add(ally);
+    }
 }
 
 function updateWeaponInHand() {
-    while(weaponGroup.children.length > 0) weaponGroup.remove(weaponGroup.children[0]);
+    if(weapons.current) camera.remove(weapons.current);
     
     let model;
-    if(player.weapon === 'akr') model = createAKR();
-    else if(player.weapon === 'pistol') model = createPistol();
-    else model = createButterflyKnife();
-    
-    model.position.set(0.3, -0.3, -0.5);
-    weaponGroup.add(model);
-    currentWeaponModel = model;
-}
+    if(player.weapon === 'akr') model = createAKRModel();
+    else if(player.weapon === 'pistol') model = createPistolModel();
+    else model = createButterflyModel();
 
-function startGame(mode) {
-    document.getElementById('mode-screen').classList.add('hidden');
-    document.getElementById('game-hud').classList.remove('hidden');
-    
-    player.inGame = true;
-    player.hp = 100;
-    document.getElementById('hp-val').innerText = player.hp;
-    
-    // Clear lobby artifacts and setup game
-    camera.position.set(20, 1.6, 20);
-    camera.add(weaponGroup);
+    model.position.set(0.35, -0.3, -0.5);
+    model.rotation.y = -0.1;
+    weapons.current = model;
+    camera.add(model);
     scene.add(camera);
-    updateWeaponInHand();
-
-    // Lock Pointer
-    document.body.requestPointerLock();
-
-    // Spawn Bots
-    spawnBots(mode);
 }
 
-function spawnBots(mode) {
-    // Enemies (Red)
-    for(let i=0; i < mode; i++) {
-        let enemy = createCharacter(0xe74c3c);
-        enemy.position.set(Math.random()*20-10, 0, Math.random()*(-20));
-        enemy.userData = { hp: 100, type: 'enemy' };
-        scene.add(enemy);
-        enemies.push(enemy);
-    }
-    // Teammate (Blue) if 2v2
-    if(mode === 2) {
-        let buddy = createCharacter(0x3498db);
-        buddy.position.set(18, 0, 18);
-        scene.add(buddy);
-        teammates.push(buddy);
-    }
+// Контролери
+function handleMouseMove(e) {
+    if(currentMode !== 'game') return;
+    const sens = 0.002;
+    camera.rotation.y -= e.movementX * sens;
+    camera.rotation.x -= e.movementY * sens;
+    camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, camera.rotation.x));
 }
 
-/**
- * CONTROLS & ANIMATION
- */
-document.addEventListener('keydown', (e) => {
-    switch(e.code) {
-        case 'KeyW': moveForward = true; break;
-        case 'KeyS': moveBackward = true; break;
-        case 'KeyA': moveLeft = true; break;
-        case 'KeyD': moveRight = true; break;
-        case 'Digit1': selectWeapon(0); break;
-        case 'Digit2': selectWeapon(1); break;
-        case 'Digit3': selectWeapon(2); break;
-    }
-});
+function handleShoot() {
+    if(currentMode !== 'game') return;
 
-document.addEventListener('keyup', (e) => {
-    switch(e.code) {
-        case 'KeyW': moveForward = false; break;
-        case 'KeyS': moveBackward = false; break;
-        case 'KeyA': moveLeft = false; break;
-        case 'KeyD': moveRight = false; break;
-    }
-});
+    // Анімація віддачі/удару
+    weapons.current.position.z += 0.1;
+    setTimeout(() => weapons.current.position.z -= 0.1, 50);
 
-document.addEventListener('mousemove', (e) => {
-    if(player.inGame) {
-        camera.rotation.y -= e.movementX * 0.002;
-        camera.rotation.x -= e.movementY * 0.002;
-        camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, camera.rotation.x));
-    }
-});
-
-document.addEventListener('mousedown', () => {
-    if(player.inGame) shoot();
-});
-
-function shoot() {
-    // Animation
-    if(player.weapon === 'knife') {
-        currentWeaponModel.rotation.x += 0.5;
-        setTimeout(() => currentWeaponModel.rotation.x -= 0.5, 100);
-    } else {
-        currentWeaponModel.position.z += 0.05;
-        setTimeout(() => currentWeaponModel.position.z -= 0.05, 50);
-    }
-
-    // Raycasting for hits
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(new THREE.Vector2(0,0), camera);
-    const intersects = raycaster.intersectObjects(enemies, true);
+    const hits = raycaster.intersectObjects(bots, true);
 
-    if(intersects.length > 0) {
-        let hitObj = intersects[0].object;
-        let bot = hitObj.parent;
-        bot.userData.hp -= (player.weapon === 'akr' ? 35 : 20);
-        console.log("Hit! Bot HP:", bot.userData.hp);
+    if(hits.length > 0) {
+        let hitBot = hits[0].object;
+        while(hitBot.parent && !hitBot.userData.hp) hitBot = hitBot.parent;
         
-        if(bot.userData.hp <= 0) {
-            scene.remove(bot);
-            enemies = enemies.filter(e => e !== bot);
-            if(enemies.length === 0) alert("ПЕРЕМОГА!");
+        if(hitBot.userData.hp) {
+            hitBot.userData.hp -= (player.weapon === 'akr' ? 34 : 20);
+            if(hitBot.userData.hp <= 0) {
+                scene.remove(hitBot);
+                bots = bots.filter(b => b !== hitBot);
+            }
         }
     }
 }
 
 function animate() {
     requestAnimationFrame(animate);
-    const delta = clock.getDelta();
+    const dt = clock.getDelta();
 
-    if(player.inGame) {
-        // Movement
-        if(moveForward) camera.translateZ(-player.speed);
-        if(moveBackward) camera.translateZ(player.speed);
-        if(moveLeft) camera.translateX(-player.speed);
-        if(moveRight) camera.translateX(player.speed);
-        camera.position.y = 1.6; // Keep height
+    if(currentMode === 'game') {
+        // Рух
+        const dir = new THREE.Vector3();
+        if(keys['KeyW']) dir.z -= 1;
+        if(keys['KeyS']) dir.z += 1;
+        if(keys['KeyA']) dir.x -= 1;
+        if(keys['KeyD']) dir.x += 1;
+        
+        dir.normalize().applyQuaternion(camera.quaternion);
+        camera.position.x += dir.x * player.speed;
+        camera.position.z += dir.z * player.speed;
+        camera.position.y = 1.6;
 
-        // Knife Animation (Idle)
-        if(player.weapon === 'knife' && currentWeaponModel) {
-            currentWeaponModel.rotation.y = Math.sin(Date.now() * 0.005) * 0.1;
+        // Анімація ножа
+        if(player.weapon === 'knife' && weapons.current) {
+            weapons.current.rotation.z = Math.sin(Date.now()*0.004) * 0.2;
+            weapons.current.rotation.x = Math.PI/2 + Math.cos(Date.now()*0.002)*0.1;
         }
 
-        // Simple Bot AI (Follow player)
-        enemies.forEach(bot => {
-            bot.lookAt(camera.position.x, 0, camera.position.z);
-            bot.translateZ(0.03);
-            
-            // Damage player if close
-            if(bot.position.distanceTo(camera.position) < 2) {
-                player.hp -= 0.1;
-                document.getElementById('hp-val').innerText = Math.ceil(player.hp);
-                if(player.hp <= 0) location.reload(); 
+        // ШІ ботів
+        bots.forEach(bot => {
+            if(bot.userData.team === 'red') {
+                bot.lookAt(camera.position.x, 0, camera.position.z);
+                const dist = bot.position.distanceTo(camera.position);
+                if(dist > 3) bot.translateZ(0.04);
+                else {
+                    player.hp -= 0.05;
+                    document.getElementById('hp-display').innerText = Math.ceil(player.hp);
+                    if(player.hp <= 0) location.reload();
+                }
             }
         });
+    } else {
+        // Огляд у лобі
+        const lp = scene.getObjectByName("lobby_player");
+        if(lp) lp.rotation.y += 0.01;
+        camera.lookAt(0, 1.2, 0);
     }
 
     renderer.render(scene, camera);
 }
 
-window.addEventListener('resize', () => {
+function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
-});
-
-init();
-
+}
 </script>
 </body>
 </html>
